@@ -6,13 +6,19 @@ const {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } = require('@modelcontextprotocol/sdk/types.js');
-const { VERSION, frameworkDefinitions } = require('../config');
+const { VERSION } = require('../config');
+const { loadConfig } = require('../config/user');
 const { readHistory } = require('../commands/history');
 const { buildLifecycleCommands } = require('../commands/lifecycle');
 const { LIFECYCLE_COMMANDS } = require('../constants');
 const { detectProject } = require('../projects/detect');
 const { getRecipeDefinitions, loadRecipeRegistry } = require('../recipes');
-const { runProcessCaptured, runSequenceCaptured } = require('../runner/captured');
+const { formatSequence } = require('../runner/command');
+const { runSequenceCaptured } = require('../runner/captured');
+
+const MCP_DEFAULT_TIMEOUT_MS = 120000;
+const MCP_RUN_TIMEOUT_MS = 30000;
+const MCP_MAX_OUTPUT_BYTES = 1024 * 1024;
 
 const TOOLS = [
   {
@@ -35,6 +41,8 @@ const TOOLS = [
         action: { type: 'string', enum: LIFECYCLE_COMMANDS, description: 'Lifecycle action to run.' },
         path: { type: 'string', description: 'Project path (defaults to current directory).' },
         dryRun: { type: 'boolean', description: 'If true, print commands without executing.' },
+        timeoutMs: { type: 'integer', description: 'Maximum time to wait before terminating the process.' },
+        maxOutputBytes: { type: 'integer', description: 'Maximum captured output bytes to return.' },
       },
     },
   },
@@ -63,7 +71,7 @@ function jsonResult(value) {
   return textResult(JSON.stringify(value, null, 2));
 }
 
-async function callTool(name, args) {
+async function callTool(name, args, environment = {}) {
   if (name === 'inspect_project') {
     const root = args.path ? require('path').resolve(args.path) : process.cwd();
     const recipeRegistry = loadRecipeRegistry({ includeUser: true });
@@ -89,6 +97,7 @@ async function callTool(name, args) {
     }
     const root = projectPath ? require('path').resolve(projectPath) : process.cwd();
     const recipeRegistry = loadRecipeRegistry({ includeUser: true });
+    const config = environment.config || loadConfig();
     let project;
     try {
       project = detectProject(root, { registry: recipeRegistry });
@@ -97,15 +106,26 @@ async function callTool(name, args) {
     }
     let commands;
     try {
-      commands = buildLifecycleCommands(action, project, {});
+      commands = buildLifecycleCommands(action, project, { config });
     } catch (error) {
       return textResult(`Error building commands: ${error.message}`);
     }
-    const preview = commands.map((c) => [c.executable, ...c.args].join(' ')).join(' && ');
+    const preview = formatSequence(commands);
     if (dryRun) return textResult(`Dry run — would execute:\n${preview}`);
-    const result = await runSequenceCaptured(commands);
+    const timeoutMs = Number.isInteger(args.timeoutMs) && args.timeoutMs > 0
+      ? args.timeoutMs
+      : action === 'run' ? MCP_RUN_TIMEOUT_MS : MCP_DEFAULT_TIMEOUT_MS;
+    const maxOutputBytes = Number.isInteger(args.maxOutputBytes) && args.maxOutputBytes >= 0
+      ? args.maxOutputBytes
+      : MCP_MAX_OUTPUT_BYTES;
+    const result = await runSequenceCaptured(commands, { timeoutMs, maxOutputBytes });
     const status = result.ok ? '✔' : `✖ (exit ${result.exitCode})`;
-    return textResult(`${status}\n\n${result.output || '(no output)'}`);
+    const notes = [
+      result.timedOut ? `Timed out after ${timeoutMs}ms.` : undefined,
+      result.outputTruncated ? `Output truncated at ${maxOutputBytes} bytes.` : undefined,
+    ].filter(Boolean);
+    const output = result.output || '(no output)';
+    return textResult(`${status}${notes.length ? `\n${notes.join('\n')}` : ''}\n\n${output}`);
   }
 
   if (name === 'list_frameworks') {
@@ -157,4 +177,4 @@ async function startMcpServer() {
   await server.connect(transport);
 }
 
-module.exports = { startMcpServer };
+module.exports = { callTool, startMcpServer };

@@ -14,6 +14,7 @@ const {
   saveHistory,
 } = require('../src/commands/history');
 const { rebuildHistoryCommands } = require('../src/cli');
+const { buildNotificationCommand } = require('../src/runtime/execute');
 
 test('version is sourced from package.json', () => {
   assert.equal(VERSION, version);
@@ -58,4 +59,12 @@ test('legacy shell-only history is refused', () => {
     () => rebuildHistoryCommands({ commandLine: 'echo unsafe && rm -rf something' }),
     /cannot be replayed safely/
   );
+});
+
+test('macOS notification passes untrusted text as an osascript argument', () => {
+  const message = 'dev build "quoted" \\ text';
+  const command = buildNotificationCommand(message, 'darwin');
+  assert.equal(command.executable, 'osascript');
+  assert.equal(command.args.at(-1), message);
+  assert.equal(command.args.slice(0, -1).some((arg) => arg.includes(message)), false);
 });

@@ -118,6 +118,30 @@ test('clean falls back to the internal safe cleaner', () => {
   assert.deepEqual(command.args.slice(1), ['/tmp/site', 'next']);
 });
 
+test('Python clean removes caches without traversing dependency directories', () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const { spawnSync } = require('node:child_process');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'devcmd-python-clean-'));
+  fs.mkdirSync(path.join(root, 'app', '__pycache__'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'node_modules', 'pkg', '__pycache__'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.ruff_cache'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'app', '__pycache__', 'module.pyc'), '');
+  fs.writeFileSync(path.join(root, 'node_modules', 'pkg', '__pycache__', 'module.pyc'), '');
+
+  const command = buildLifecycleCommands(
+    'clean',
+    { type: 'fastapi', name: 'api', root },
+    { config: { python: 'python3' } }
+  )[0];
+  const result = spawnSync(command.executable, command.args, { encoding: 'utf8' });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(fs.existsSync(path.join(root, 'app', '__pycache__')), false);
+  assert.equal(fs.existsSync(path.join(root, '.ruff_cache')), false);
+  assert.equal(fs.existsSync(path.join(root, 'node_modules', 'pkg', '__pycache__')), true);
+});
+
 test('open supports configured editor and platform applications', () => {
   assert.deepEqual(buildOpenCommands(nodeProject, undefined, { editor: 'cursor' }), [
     { executable: 'cursor', args: ['/tmp/site'] },

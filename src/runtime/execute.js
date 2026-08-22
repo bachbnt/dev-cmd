@@ -7,13 +7,31 @@ const { assertExecutables } = require('../runner/check');
 const { formatSequence } = require('../runner/command');
 const { runSequence } = require('../runner/process');
 
+function buildNotificationCommand(message, platform = process.platform) {
+  if (platform === 'darwin') {
+    return {
+      executable: 'osascript',
+      args: [
+        '-e',
+        'on run argv',
+        '-e',
+        'display notification (item 1 of argv) with title "DevCmd"',
+        '-e',
+        'end run',
+        message,
+      ],
+    };
+  }
+  if (platform === 'linux') {
+    return { executable: 'notify-send', args: ['DevCmd', message] };
+  }
+  return undefined;
+}
+
 function sendNotification(message) {
   try {
-    if (process.platform === 'darwin') {
-      spawn('osascript', ['-e', `display notification "${message}" with title "DevCmd"`], { stdio: 'ignore' });
-    } else if (process.platform === 'linux') {
-      spawn('notify-send', ['DevCmd', message], { stdio: 'ignore' });
-    }
+    const command = buildNotificationCommand(message);
+    if (command) spawn(command.executable, command.args, { stdio: 'ignore' });
   } catch {}
 }
 
@@ -75,6 +93,7 @@ async function executeCommands(p, pc, commands, metadata, options = {}) {
 }
 
 module.exports = {
+  buildNotificationCommand,
   describeFailure,
   executeCommands,
 };

@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
+const { runProcessCaptured, runSequenceCaptured } = require('../src/runner/captured');
 const { runProcess, runSequence } = require('../src/runner/process');
 
 function createChild() {
@@ -93,4 +94,47 @@ test('sequence stops at the first failed process and preserves exit code', async
   assert.deepEqual(invoked, ['first', 'second']);
   assert.equal(result.exitCode, 7);
   assert.equal(result.failedIndex, 1);
+});
+
+test('captured runner truncates output across a sequence', async () => {
+  const result = await runSequenceCaptured(
+    [
+      { executable: 'first', args: [] },
+      { executable: 'second', args: [] },
+    ],
+    {
+      maxOutputBytes: 5,
+      spawnImpl(executable) {
+        const child = createChild();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        process.nextTick(() => {
+          child.stdout.emit('data', Buffer.from(executable));
+          child.emit('exit', 0, null);
+          child.emit('close', 0, null);
+        });
+        return child;
+      },
+    }
+  );
+  assert.equal(result.ok, true);
+  assert.equal(result.output, 'first');
+  assert.equal(result.outputTruncated, true);
+});
+
+test('captured runner terminates timed out processes', async () => {
+  const child = createChild();
+  child.stdout = new EventEmitter();
+  child.stderr = new EventEmitter();
+  const result = await runProcessCaptured(
+    { executable: 'long-task', args: [] },
+    {
+      timeoutMs: 1,
+      spawnImpl: () => child,
+    }
+  );
+  assert.equal(child.killed, true);
+  assert.equal(result.ok, false);
+  assert.equal(result.timedOut, true);
+  assert.equal(result.exitCode, 143);
 });

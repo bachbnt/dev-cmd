@@ -139,7 +139,7 @@ Direct, non-interactive project creation:
 ```bash
 dev react my-app --typescript --pnpm --git
 dev next my-app --typescript --npm --eslint
-dev nuxt my-app --pnpm --git
+dev angular my-app --pnpm --git
 dev vue my-app --javascript --yarn --no-eslint
 dev django my-app
 dev fastapi my-api
@@ -174,8 +174,8 @@ dev inspect ../my-project
 | `react_native` | Expo via `create-expo-app` (recommended) |
 | `react_native_cli` | React Native Community CLI without a framework |
 | `next` | `create-next-app` |
-| `nuxt` | Official `create-nuxt` minimal starter |
 | `vue` | Official `create-vue` |
+| `angular` | Angular CLI (`ng new`) |
 | `express` | Official `express-generator` |
 | `nest` | Nest CLI |
 | `django` | Official Django `startproject` inside a local virtual environment |
@@ -186,7 +186,7 @@ Direct targets use recommended defaults: TypeScript, npm, Git, and ESLint where 
 
 React recommends using a framework for new production applications. Use `dev next` for a full-stack React framework, or `dev react` when a client-side Vite application is the right fit. React Native recommends a framework, so `dev react_native` uses Expo; use `dev react_native_cli` only when framework constraints do not fit the project.
 
-Nuxt is the full-stack Vue option. Nuxt has built-in TypeScript support, so `dev nuxt` exposes package manager and Git choices without a redundant TypeScript/JavaScript flag.
+Angular CLI scaffolds a full TypeScript workspace via `ng new`. DevCmd forwards the package manager and Git flags directly; TypeScript is Angular's default and is not a separate option.
 
 Python projects create a local `.venv`, install their declared dependencies, and include development instructions in the generated README. Django uses the official project generator; FastAPI and Flask use small DevCmd templates based on their official recommended layouts.
 

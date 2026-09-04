@@ -188,54 +188,6 @@
     ]
   },
   {
-    "name": "nuxt",
-    "description": "Nuxt full-stack Vue framework",
-    "capabilities": { "packageManager": true, "git": true, "noInstall": true },
-    "inputs": {},
-    "detect": { "priority": 90, "rules": [{ "dependencies": ["nuxt"] }] },
-    "lifecycle": { "adapter": "node" },
-    "requirements": [
-      "node",
-      {
-        "option": "packageManager",
-        "map": { "npm": "npm", "pnpm": "pnpm", "yarn": "yarn" }
-      },
-      { "value": "git", "when": { "option": "git", "equals": true } }
-    ],
-    "actions": [
-      {
-        "type": "run",
-        "executable": {
-          "option": "packageManager",
-          "map": { "npm": "npm", "pnpm": "pnpm", "yarn": "yarn" }
-        },
-        "args": [
-          {
-            "option": "packageManager",
-            "map": {
-              "npm": ["create", "nuxt@latest", "{target}", "--"],
-              "pnpm": ["create", "nuxt@latest", "{target}"],
-              "yarn": ["create", "nuxt", "{target}"]
-            }
-          },
-          "--template",
-          "minimal",
-          "--packageManager",
-          "{packageManager}",
-          "--gitInit=false",
-          "--modules=",
-          { "value": "--no-install", "when": { "option": "noInstall", "equals": true } }
-        ]
-      },
-      {
-        "type": "run",
-        "executable": "git",
-        "args": ["-C", "{target}", "init"],
-        "when": { "option": "git", "equals": true }
-      }
-    ]
-  },
-  {
     "name": "vue",
     "description": "Official create-vue scaffolder",
     "capabilities": { "language": true, "packageManager": true, "git": true, "eslint": true, "noInstall": true },
@@ -276,6 +228,34 @@
         "executable": "git",
         "args": ["-C", "{target}", "init"],
         "when": { "option": "git", "equals": true }
+      }
+    ]
+  },
+  {
+    "name": "angular",
+    "description": "Angular CLI (ng new)",
+    "capabilities": { "packageManager": true, "git": true, "noInstall": true },
+    "inputs": {},
+    "detect": { "priority": 85, "rules": [{ "dependencies": ["@angular/core"] }] },
+    "lifecycle": { "adapter": "node" },
+    "requirements": [
+      "node",
+      "npx",
+      { "value": "git", "when": { "option": "git", "equals": true } }
+    ],
+    "actions": [
+      {
+        "type": "run",
+        "executable": "npx",
+        "args": [
+          "@angular/cli@latest",
+          "new",
+          "{target}",
+          "--package-manager",
+          "{packageManager}",
+          { "value": "--skip-git", "when": { "option": "git", "equals": false } },
+          { "value": "--skip-install", "when": { "option": "noInstall", "equals": true } }
+        ]
       }
     ]
   },

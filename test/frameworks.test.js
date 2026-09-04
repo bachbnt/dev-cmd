@@ -123,28 +123,44 @@ test('Next and Nest arguments remain discrete', () => {
   );
 });
 
-test('Nuxt uses the official minimal starter without extra prompts', () => {
+test('Angular CLI uses npx and forwards package-manager and git flags', () => {
   assert.deepEqual(
-    buildFrameworkCommands('nuxt', 'nuxt-app', {
-      packageManager: 'pnpm',
+    buildFrameworkCommands('angular', 'ng-app', {
+      packageManager: 'npm',
       git: true,
     }),
     [
       {
-        executable: 'pnpm',
+        executable: 'npx',
         args: [
-          'create',
-          'nuxt@latest',
-          'nuxt-app',
-          '--template',
-          'minimal',
-          '--packageManager',
-          'pnpm',
-          '--gitInit=false',
-          '--modules=',
+          '@angular/cli@latest',
+          'new',
+          'ng-app',
+          '--package-manager',
+          'npm',
         ],
       },
-      { executable: 'git', args: ['-C', 'nuxt-app', 'init'] },
+    ]
+  );
+  assert.deepEqual(
+    buildFrameworkCommands('angular', 'ng-app', {
+      packageManager: 'pnpm',
+      git: false,
+      noInstall: true,
+    }),
+    [
+      {
+        executable: 'npx',
+        args: [
+          '@angular/cli@latest',
+          'new',
+          'ng-app',
+          '--package-manager',
+          'pnpm',
+          '--skip-git',
+          '--skip-install',
+        ],
+      },
     ]
   );
 });

@@ -1,6 +1,6 @@
 {
   "name": "devcmd",
-  "version": "2.6.4",
+  "version": "2.6.5",
   "description": "DevCmd project scaffolding, lifecycle, and development environment CLI",
   "bin": {
     "dev": "./dev",

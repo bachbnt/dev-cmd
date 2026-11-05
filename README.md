@@ -21,6 +21,27 @@ DevCmd is an interactive development CLI for scaffolding projects, detecting exi
 - Check the local toolchain with `dev doctor`.
 - Store defaults and recently used projects under `~/.devcmd`.
 
+## Screenshots
+
+| Interactive framework picker (`dev init`) | Interactive options (`dev next`) |
+|:-:|:-:|
+| <img src="docs/screenshots/init.png" alt="dev init: select a framework" width="100%"> | <img src="docs/screenshots/next.png" alt="dev next: project name, TypeScript, package manager, Git and ESLint prompts" width="100%"> |
+
+| Preview with `--dry-run` | Toolchain check (`dev doctor`) |
+|:-:|:-:|
+| <img src="docs/screenshots/dry-run.png" alt="dev --dry-run previews for react, next, flutter and angular" width="100%"> | <img src="docs/screenshots/doctor.png" alt="dev doctor: installed development tools" width="100%"> |
+
+| Android and iOS devices (`dev devices`) | Framework recipes (`dev recipes`) |
+|:-:|:-:|
+| <img src="docs/screenshots/devices.png" alt="dev devices: Android emulators and iOS simulators" width="100%"> | <img src="docs/screenshots/recipes.png" alt="dev recipes: built-in framework recipes" width="100%"> |
+
+<details>
+<summary>All commands (<code>dev help</code>)</summary>
+
+<img src="docs/screenshots/help.png" alt="dev help: every command and option" width="60%">
+
+</details>
+
 ## Requirements
 
 - Node.js 24.13 or newer, including npm.

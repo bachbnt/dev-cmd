@@ -2,7 +2,10 @@
 
 DevCmd is an interactive development CLI for scaffolding projects, detecting existing projects, running common lifecycle tasks, and managing Android emulators and iOS simulators.
 
-[Download the latest DevCmd release](https://github.com/bachbnt/dev-cmd/releases/latest) | [View all releases](https://github.com/bachbnt/dev-cmd/releases)
+[![npm](https://img.shields.io/npm/v/@bachbntdev/devcmd)](https://www.npmjs.com/package/@bachbntdev/devcmd)
+[![CI](https://github.com/bachbnt/dev-cmd/actions/workflows/ci.yml/badge.svg)](https://github.com/bachbnt/dev-cmd/actions/workflows/ci.yml)
+
+[Install from npm](https://www.npmjs.com/package/@bachbntdev/devcmd) | [Download the latest DevCmd release](https://github.com/bachbnt/dev-cmd/releases/latest) | [View all releases](https://github.com/bachbnt/dev-cmd/releases)
 
 ## Features
 
@@ -60,7 +63,7 @@ DevCmd is an interactive development CLI for scaffolding projects, detecting exi
 
 ### Install from npm
 
-DevCmd is published as the scoped package `@bachbntdev/devcmd`. The unscoped registry package named `devcmd` belongs to a different project, so always include the scope:
+DevCmd is published on npm as the scoped package [`@bachbntdev/devcmd`](https://www.npmjs.com/package/@bachbntdev/devcmd) (available since 2.7.1). The unscoped registry package named `devcmd` belongs to a different project, so always include the scope:
 
 ```bash
 npm install --global @bachbntdev/devcmd

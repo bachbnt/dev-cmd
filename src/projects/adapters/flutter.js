@@ -14,6 +14,10 @@ function build(action, project) {
   if (action === 'build') return [command(project, ['build', 'apk'])];
   if (action === 'reset') return [command(project, ['clean']), command(project, ['pub', 'get'])];
   if (action === 'clean') return [command(project, ['clean'])];
+  if (action === 'lint') return [command(project, ['analyze'])];
+  if (action === 'format') return [createCommand('dart', ['format', '.'], { cwd: project.root })];
+  if (action === 'outdated') return [command(project, ['pub', 'outdated'])];
+  if (action === 'upgrade') return [command(project, ['pub', 'upgrade'])];
   if (action === 'check') return [command(project, ['analyze']), command(project, ['test'])];
   return unsupported(action, project);
 }

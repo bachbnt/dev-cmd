@@ -219,6 +219,7 @@ function validateRecipe(recipe) {
 }
 
 module.exports = {
+  validateAction,
   validateRecipe,
   validateValueSpec,
 };

@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const { builtInRegistry } = require('../recipes');
+const { loadProfile } = require('./profile');
+const { findWorkspaces } = require('./workspaces');
 
 function exists(root, name, fsImpl = fs) {
   return fsImpl.existsSync(path.join(root, name));
@@ -89,7 +91,7 @@ function findXcodeContainer(root, fsImpl = fs) {
   return undefined;
 }
 
-function detectAtRoot(root, fsImpl = fs, registry = builtInRegistry) {
+function detectBase(root, fsImpl = fs, registry = builtInRegistry) {
   const packageJson = exists(root, 'package.json', fsImpl)
     ? readJson(path.join(root, 'package.json'), fsImpl)
     : undefined;
@@ -100,6 +102,7 @@ function detectAtRoot(root, fsImpl = fs, registry = builtInRegistry) {
       name: packageJson?.name || path.basename(root),
       root,
       packageJson,
+      workspaces: packageJson ? findWorkspaces(root, packageJson, fsImpl) : [],
       packageManager: packageJson ? detectPackageManager(root, packageJson, fsImpl) : undefined,
       recipe,
     };
@@ -112,6 +115,7 @@ function detectAtRoot(root, fsImpl = fs, registry = builtInRegistry) {
       name: packageJson.name || path.basename(root),
       root,
       packageJson,
+      workspaces: findWorkspaces(root, packageJson, fsImpl),
       packageManager: detectPackageManager(root, packageJson, fsImpl),
       recipe: registry.get(type),
     };
@@ -142,6 +146,14 @@ function detectAtRoot(root, fsImpl = fs, registry = builtInRegistry) {
   }
 
   return undefined;
+}
+
+function detectAtRoot(root, fsImpl = fs, registry = builtInRegistry) {
+  const project = detectBase(root, fsImpl, registry);
+  const profile = loadProfile(root, fsImpl);
+  if (!profile) return project;
+  if (project) return { ...project, profile };
+  return { type: 'custom', name: profile.name || path.basename(root), root, profile };
 }
 
 function detectProject(start = process.cwd(), options = {}) {

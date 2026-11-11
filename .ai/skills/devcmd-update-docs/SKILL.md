@@ -11,8 +11,8 @@ Derive documentation from implemented behavior and verified commands, not from a
 
 ## Workflow
 
-1. Read `src/cli.js`, `src/config/index.js`, `src/recipes/built-ins.json`, `src/openers/built-ins.json`, `src/commands/completion.js`, argument parsing, and the relevant handlers.
-2. Compare framework and opener names, lifecycle actions, options, defaults, aliases, prerequisites, and examples across help, completion, and README.
+1. Read `src/cli.js`, `src/constants.js`, `src/config/index.js`, `src/recipes/built-ins.json`, `src/openers/built-ins.json`, `src/commands/completion.js`, `src/utils/args.js`, `src/mcp/tools.js`, and the relevant handlers.
+2. Compare framework and opener names, lifecycle actions, options, defaults, aliases, prerequisites, MCP tool names, and examples across help, completion, README, and the AI skills.
 3. Run commands with `--dry-run` before documenting generated command behavior.
 4. Verify installation URLs, repository metadata, release links, the current version or tag, and `npm pack --dry-run` contents when referenced.
 5. Separate end-user installation from contributor setup. Make clear whether a click downloads an archive or actually installs software.
@@ -24,7 +24,8 @@ Derive documentation from implemented behavior and verified commands, not from a
 - Prefer version-independent links such as `/releases/latest` where appropriate.
 - Pin a specific tag only for reproducible installation examples.
 - State optional SDK requirements next to the feature that needs them.
-- Do not claim npm registry installation until the package is published there. The registry name `devcmd` currently belongs to an unrelated project, so GitHub installation examples must use an explicit `bachbnt/dev-cmd` URL.
+- The npm package is the scoped `@bachbntdev/devcmd`. The unscoped registry name `devcmd` belongs to an unrelated project, so never document it. Keep the GitHub archive URL installation as an alternative and confirm the package exists on npm (`npm view @bachbntdev/devcmd version`) before describing registry installation as available.
+- Keep the minimum Node.js version identical in `package.json`, `package-lock.json`, `dev`, README, and the CI matrix.
 - Distinguish the latest tagged release from the latest committed source on `main`.
 - State whether repository-only contributor files, including `.ai/skills`, are excluded from the installed package.
 

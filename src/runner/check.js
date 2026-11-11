@@ -48,18 +48,19 @@ function getVersion(executable, args = ['--version'], options = {}) {
 
 function checkTools(config, options = {}) {
   const tools = [
-    { name: 'Node.js', executable: 'node', args: ['--version'], required: true },
-    { name: 'npm', executable: 'npm', args: ['--version'], required: true },
-    { name: 'Git', executable: 'git', args: ['--version'], required: true },
-    { name: 'pnpm', executable: 'pnpm', args: ['--version'] },
-    { name: 'Yarn', executable: 'yarn', args: ['--version'] },
-    { name: 'Python', executable: config.python, args: ['--version'] },
-    { name: 'Flutter', executable: 'flutter', args: ['--version', '--machine'] },
-    { name: 'Android adb', executable: 'adb', args: ['version'] },
-    { name: 'Android emulator', executable: 'emulator', args: ['-version'] },
+    { name: 'Node.js', executable: 'node', args: ['--version'], required: true, hint: 'Install from https://nodejs.org or run: nvm install --lts' },
+    { name: 'npm', executable: 'npm', args: ['--version'], required: true, hint: 'npm ships with Node.js. Reinstall Node.js.' },
+    { name: 'Git', executable: 'git', args: ['--version'], required: true, hint: 'macOS: xcode-select --install | Linux: sudo apt install git' },
+    { name: 'pnpm', executable: 'pnpm', args: ['--version'], hint: 'Run: corepack enable pnpm (or npm install --global pnpm)' },
+    { name: 'Yarn', executable: 'yarn', args: ['--version'], hint: 'Run: corepack enable yarn' },
+    { name: 'Python', executable: config.python, args: ['--version'], hint: 'macOS: brew install python | Linux: sudo apt install python3 python3-venv' },
+    { name: 'Docker', executable: 'docker', args: ['--version'], hint: 'Install Docker Desktop from https://docs.docker.com/get-docker/' },
+    { name: 'Flutter', executable: 'flutter', args: ['--version', '--machine'], hint: 'See https://docs.flutter.dev/get-started/install' },
+    { name: 'Android adb', executable: 'adb', args: ['version'], hint: 'Install Android Studio and add platform-tools to PATH' },
+    { name: 'Android emulator', executable: 'emulator', args: ['-version'], hint: 'Install Android Studio and add emulator to PATH' },
   ];
   if (process.platform === 'darwin') {
-    tools.push({ name: 'Xcode', executable: 'xcodebuild', args: ['-version'] });
+    tools.push({ name: 'Xcode', executable: 'xcodebuild', args: ['-version'], hint: 'Install Xcode from the App Store, then: xcode-select --install' });
   }
 
   return tools.map((tool) => {

@@ -20,6 +20,13 @@ DevCmd is an interactive development CLI for scaffolding projects, detecting exi
 - Add trusted user-defined framework recipes without changing DevCmd source.
 - Check the local toolchain with `dev doctor`.
 - Store defaults and recently used projects under `~/.devcmd`.
+- Target one package in a monorepo with `--filter`.
+- Lint, format, audit, and upgrade dependencies with the same lifecycle commands.
+- Define project-specific commands and tasks in a trusted `.devcmd.json`.
+- Run an action in several projects at once with `dev parallel`.
+- Manage `.env` files and Docker Compose from the same CLI.
+- Print machine-readable output with `--json`.
+- Let AI agents scaffold, inspect, run, and monitor projects through the built-in MCP server.
 
 ## Screenshots
 
@@ -44,23 +51,44 @@ DevCmd is an interactive development CLI for scaffolding projects, detecting exi
 
 ## Requirements
 
-- Node.js 24.13 or newer, including npm.
+- Node.js 20.12 or newer, including npm. CI covers Node.js 20, 22, and 24.
 - Android Studio is only required for Android emulator features.
 - Xcode is only required for iOS simulator features.
 - Framework SDKs are only required for the frameworks you use, such as Flutter or Python.
 
 ## Installation
 
-> [!IMPORTANT]
-> DevCmd by `bachbnt` is not published to the npm registry. The registry package named `devcmd` belongs to a different project. Do not install this project with `npm install --global devcmd` or run it with `npx devcmd`; use one of the GitHub URLs below.
+### Install from npm
 
-### Download
+DevCmd is published as the scoped package `@bachbntdev/devcmd`. The unscoped registry package named `devcmd` belongs to a different project, so always include the scope:
+
+```bash
+npm install --global @bachbntdev/devcmd
+dev help
+dev doctor
+```
+
+Run it without installing:
+
+```bash
+npx @bachbntdev/devcmd doctor
+```
+
+Update with `dev update` (it runs `npm install --global @bachbntdev/devcmd@latest`). Remove it with:
+
+```bash
+npm uninstall --global @bachbntdev/devcmd
+```
+
+If you installed an older release from a GitHub archive, it was registered as `devcmd`. Remove it first with `npm uninstall --global devcmd`.
+
+### Download from GitHub
 
 Open the latest GitHub Release to view release notes and downloadable source archives:
 
 [Download the latest release](https://github.com/bachbnt/dev-cmd/releases/latest)
 
-Downloading an archive does not install the CLI automatically. Until a signed macOS installer is provided, use npm as the installer with a GitHub URL below. npm downloads DevCmd from GitHub, not from the npm registry, and no repository clone is required.
+Downloading an archive does not install the CLI automatically. To install straight from GitHub instead of the npm registry, use npm with a GitHub URL below. No repository clone is required.
 
 ### Install the current source
 
@@ -101,15 +129,13 @@ Tagged releases can predate features documented on `main`. Check [GitHub Release
 
 ### Update or uninstall
 
-Install a newer release tag, or run the `main` installation command again, to update DevCmd. To remove a GitHub-installed copy:
+Run `dev update`, install a newer release tag, or run the `main` installation command again to update DevCmd. To remove a copy installed from a GitHub archive:
 
 ```bash
-npm uninstall --global devcmd
+npm uninstall --global @bachbntdev/devcmd
 ```
 
 Repository contributors can also double-click `commands/install-remote.command` instead of entering setup or update commands manually.
-
-The uninstall command uses the package name recorded by the installed GitHub archive. It does not mean this project is available from the npm registry.
 
 When using NVM, global npm packages belong to the active Node.js version. Install DevCmd once for each Node.js version where it should be available. If the command is not found immediately after installation, open a new terminal and check the active npm prefix with `npm config get prefix`.
 
@@ -173,7 +199,7 @@ Preview without executing:
 dev flutter demo --dry-run
 ```
 
-Check installed development tools:
+Check installed development tools and see how to install the missing ones:
 
 ```bash
 dev doctor
@@ -241,10 +267,25 @@ dev run
 dev test
 dev build
 dev check
+dev lint
+dev format
+dev outdated
+dev upgrade
+dev audit
 dev clean
 dev reset
 dev open
 ```
+
+| Action | Node.js | Python | Flutter |
+| --- | --- | --- | --- |
+| `lint` | `lint` script (`lint:fix` with `--fix`) | `ruff check` (`--fix`) | `flutter analyze` |
+| `format` | `format` script | `ruff format` | `dart format .` |
+| `outdated` | `<pm> outdated` | `pip list --outdated` | `flutter pub outdated` |
+| `upgrade` | `<pm> update` (`yarn upgrade`) | `pip install --upgrade -e .[dev]` | `flutter pub upgrade` |
+| `audit` | `<pm> audit` (`yarn npm audit` on Yarn Berry) | `pip_audit` | not supported |
+
+`dev outdated` exits with code 1 under npm when outdated packages exist; that is npm behavior, not a DevCmd failure.
 
 `dev reset` removes the dependency directory (`node_modules` or `.venv`) and reinstalls from scratch. Flutter runs `flutter clean` then `flutter pub get`. iOS runs `xcodebuild clean` then resolves package dependencies.
 
@@ -275,6 +316,116 @@ Current native defaults:
 - Android build: `./gradlew assembleDebug`
 - iOS build/test/clean: `xcodebuild` with the detected workspace or project
 - iOS automatic run is intentionally not provided because it requires an explicit scheme and destination
+
+### Monorepos and Workspaces
+
+DevCmd detects npm, Yarn, and pnpm workspaces (`workspaces` in `package.json` or `pnpm-workspace.yaml`). `dev inspect` lists them. Target one workspace with `--filter`, using its package name, directory, or directory name:
+
+```bash
+dev test --filter @acme/web
+dev run --filter web
+dev lint --filter apps/api --fix
+dev check --filter web
+```
+
+`--filter` works with `run`, `test`, `build`, `check`, `lint`, `format`, and `task`. It resolves to `npm run <script> --workspace <name>`, `pnpm --filter <name> run <script>`, or `yarn workspace <name> run <script>`, and checks the selected workspace's scripts. Without `--filter`, the commands run in the repository root.
+
+### Tasks
+
+`dev task` lists the tasks DevCmd can run: tasks from `.devcmd.json` first, then `package.json` scripts. Run one by name:
+
+```bash
+dev task
+dev task seed
+dev task seed ../my-api
+dev task migrate --filter api
+```
+
+### Project Profile (`.devcmd.json`)
+
+A `.devcmd.json` file at the project root overrides lifecycle actions and defines tasks. It also lets DevCmd drive projects it cannot detect, such as a Go or Make based repository (the project type is `custom`). Commands use the same structured `run` actions as recipes: separate `executable` and `args`, no shell, and the placeholders `{root}`, `{packageManager}`, and `{python}`.
+
+```json
+{
+  "name": "my-service",
+  "lifecycle": {
+    "run": [{ "type": "run", "executable": "go", "args": ["run", "./cmd/server"], "cwd": "{root}" }],
+    "test": [{ "type": "run", "executable": "go", "args": ["test", "./..."], "cwd": "{root}" }]
+  },
+  "tasks": {
+    "seed": {
+      "description": "Load sample data",
+      "commands": [{ "type": "run", "executable": "go", "args": ["run", "./cmd/seed"], "cwd": "{root}" }]
+    }
+  }
+}
+```
+
+Actions that the profile does not define fall back to the detected project type. A profile executes commands, so DevCmd never runs it until you approve it:
+
+```bash
+dev trust            # shows every command, then asks for confirmation
+dev trust --yes      # approve without the prompt
+```
+
+Approval is stored in `~/.devcmd/trusted.json` together with a hash of the file. Changing the file requires approval again. Shell executables such as `bash` or `cmd` are rejected, as in recipes. `dev inspect` shows whether the profile is trusted.
+
+### Parallel Execution
+
+Run one lifecycle action in several projects at once. Output lines are prefixed with the project name and Ctrl+C stops every child process:
+
+```bash
+dev parallel run ./api ./web
+dev parallel test ./api ./web ./worker
+dev parallel build ./api ./web --dry-run
+```
+
+### Environment Files
+
+```bash
+dev env              # create .env from .env.example, .env.sample, or .env.template (never overwrites)
+dev env check        # report variables missing from .env; exits 1 when any are missing
+dev env check ../my-api
+```
+
+Variable values are never printed.
+
+### Docker Compose
+
+```bash
+dev docker up        # docker compose up -d
+dev docker logs
+dev docker down
+dev docker build ./services/api
+```
+
+Supported actions are `up`, `down`, `build`, `ps`, `logs`, and `restart`. DevCmd looks for `compose.yaml`, `compose.yml`, `docker-compose.yaml`, or `docker-compose.yml`.
+
+### JSON Output
+
+Add `--json` to print machine-readable JSON on stdout for `inspect`, `doctor`, `projects`, `history`, `recipes`, `openers`, `devices`, and `config`. Errors are written to stderr as `{"error": "..."}` and the exit code is 1. `dev doctor --json` exits 1 when a required tool is missing.
+
+```bash
+dev inspect --json | jq '.actions[] | select(.available) | .command'
+dev doctor --json
+```
+
+### Continuous Integration
+
+The repository provides a composite GitHub Action that runs a DevCmd command in your workflow:
+
+```yaml
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+  with:
+    node-version: 22
+- uses: bachbnt/dev-cmd@main
+  with:
+    command: check
+    path: .
+```
+
+`dev check` returns the failing command's exit code, so the step fails when linting, type checking, tests, or the build fail.
 
 ### Project Openers
 
@@ -409,7 +560,7 @@ dev clone git@github.com:owner/repo.git
 
 `owner/repo` is treated as a GitHub shorthand. DevCmd detects the project type after cloning and runs `dev install` automatically.
 
-Update DevCmd to the latest version from GitHub:
+Update DevCmd to the latest version from npm:
 
 ```bash
 dev update
@@ -434,6 +585,7 @@ The generated completion registers both executable names: `dev` and `devcmd`.
 dev history
 dev history --clear
 dev history --project ~/Projects/my-app
+dev history --search next
 dev again
 dev again 3
 dev again --dry-run
@@ -441,7 +593,7 @@ dev again --dry-run
 
 The latest 50 successful commands are stored in `~/.devcmd/history.json`.
 
-`dev again <n>` repeats the nth entry shown by `dev history`. `dev history --clear` deletes the history file. `dev history --project <path>` filters entries by project path.
+`dev again <n>` repeats the nth entry shown by `dev history`. `dev history --clear` deletes the history file. `dev history --project <path>` filters entries by project path and `dev history --search <text>` filters by text in the command, project name, or type. Filters can be combined.
 
 History entries store executables and argument arrays instead of shell command strings. Compatible older entries are rebuilt from their saved metadata before `dev again` runs them.
 
@@ -460,11 +612,16 @@ History entries store executables and argument arrays instead of shell command s
 --editor <executable>
 --with <opener>
 --list
+--filter <workspace>        (run, test, build, check, lint, format, task)
+--fix                       (lint only) Apply automatic fixes
+--json                      (inspect, doctor, projects, history, recipes, openers, devices, config)
+--yes, -y                   (trust only) Approve without the prompt
 --set <name=value>
 --cold-boot
 --shutdown-all
 --clear                     (history only) Delete the history file
 --project <path>            (history only) Filter history by project path
+--search <text>             (history only) Filter history by text
 ```
 
 ## Development
@@ -486,9 +643,11 @@ src/devices/                Android and iOS discovery
 src/generators/             Node.js scripts invoked as child processes
 src/handlers/               CLI command handlers
 src/openers/                Built-in and custom project opener engine
-src/projects/               Detection, lifecycle adapters, and recent-project registry
+src/projects/               Detection, workspaces, .devcmd.json profiles, lifecycle adapters, recent projects
 src/recipes/                Built-in and custom framework recipe engine
-src/mcp/                    MCP server (stdio transport for AI agents)
+src/mcp/                    MCP server, tools, and background process manager
+.github/workflows/          CI (Node 20/22/24) and npm publish workflows
+action.yml                  Composite GitHub Action for dev check
 src/runtime/                Shared command execution flow
 src/runner/                 Command formatting and process execution
 src/utils/                  Argument parsing and validation
@@ -527,7 +686,9 @@ Preview all checks and the release plan without changing the repository or publi
 npm run release -- patch --dry-run
 ```
 
-Pass `--yes` for a non-interactive release or `--draft` to create a draft GitHub Release. The `gh` CLI must be installed and authenticated with `gh auth login`.
+Pass `--yes` for a non-interactive release or `--draft` to create a draft GitHub Release.
+
+Publishing a GitHub Release triggers `.github/workflows/publish.yml`, which checks that the tag matches `package.json`, runs the tests, and runs `npm publish --provenance --access public`. Add an npm automation token as the repository secret `NPM_TOKEN` before the first release; without it the workflow skips publishing with a warning and can be re-run after the secret is added. Draft releases do not publish. The `gh` CLI must be installed and authenticated with `gh auth login`.
 
 `SIGINT` and `SIGTERM` are forwarded to the active child process. DevCmd preserves child exit codes, uses `127` for missing executables, and uses conventional signal exit codes such as `130` for `SIGINT`.
 
@@ -610,16 +771,47 @@ DevCmd exposes an [MCP (Model Context Protocol)](https://modelcontextprotocol.io
 
 ### Setup
 
-The server is discovered automatically through `.mcp.json` in the project root. No manual startup is required — Claude Code and compatible agents spawn `dev mcp` on demand and shut it down when the session ends.
+Inside this repository the server is discovered automatically through `.mcp.json`. For any other project, register it with an agent. With DevCmd installed globally:
+
+```json
+{
+  "mcpServers": {
+    "devcmd": { "command": "dev", "args": ["mcp"] }
+  }
+}
+```
+
+Without a global installation, let `npx` fetch it on demand:
+
+```json
+{
+  "mcpServers": {
+    "devcmd": { "command": "npx", "args": ["-y", "@bachbntdev/devcmd", "mcp"] }
+  }
+}
+```
+
+Claude Code can add it with `claude mcp add devcmd -- npx -y @bachbntdev/devcmd mcp`. Agents spawn `dev mcp` on demand and shut it down when the session ends; background processes are stopped with it.
 
 ### Tools
 
 | Tool | Description |
 | --- | --- |
-| `inspect_project` | Detect the project at a given path and return its type, name, root, and package manager. |
-| `run_lifecycle` | Run a lifecycle action (`install`, `run`, `test`, `build`, `check`, `clean`, `reset`, `open`) on a project and return the captured output. |
-| `list_frameworks` | List all available framework recipes that can be scaffolded. |
-| `get_history` | Return recent successful DevCmd commands from the history file. |
+| `inspect_project` | Project type, package manager, workspaces, tasks, profile trust state, and the exact command for every lifecycle action. |
+| `run_lifecycle` | Run `install`, `run`, `test`, `build`, `check`, `lint`, `format`, `outdated`, `upgrade`, `audit`, `clean`, `reset`, or `open`. Supports `filter`, `fix`, `dryRun`, `timeoutMs`, and `maxOutputBytes`. Returns JSON with `ok`, `exitCode`, `output`, and `timedOut`. |
+| `run_task` | Run a `.devcmd.json` task or `package.json` script. |
+| `start_process` | Start a lifecycle action, such as a dev server, in the background and return a process id. |
+| `get_process_logs` | Status and the latest output lines of a background process. |
+| `stop_process` | Stop a background process. |
+| `list_processes` | List background processes. |
+| `scaffold_project` | Create a project from a recipe. `dryRun` defaults to `true`; review the command, then call again with `dryRun: false`. |
+| `list_frameworks` | Recipes with their supported options. |
+| `doctor` | Installed tools and install hints. |
+| `list_devices` | Android emulators and iOS simulators. |
+| `boot_device` | Boot an Android emulator (background process) or an iOS simulator. |
+| `get_history` | Recent successful commands, filterable by `project` and `search`. |
+
+Failed commands are returned with `isError: true` so agents can react to them. Profile commands from `.devcmd.json` are refused until you run `dev trust` yourself; the MCP server has no tool for approving a profile.
 
 ### Running manually
 

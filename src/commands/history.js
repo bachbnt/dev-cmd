@@ -34,6 +34,17 @@ function createHistoryEntry(metadata, commands) {
   };
 }
 
+function filterHistory(history, filters = {}) {
+  const project = filters.project ? path.resolve(filters.project) : undefined;
+  const search = filters.search?.toLowerCase();
+  return history.filter((entry) => {
+    if (project && entry.projectPath !== project) return false;
+    if (!search) return true;
+    return [entry.command, entry.projectName, entry.commandLine, entry.projectType]
+      .some((value) => typeof value === 'string' && value.toLowerCase().includes(search));
+  });
+}
+
 function getHistoryDisplay(entry) {
   if (isCommandSequence(entry.commands)) return formatSequence(entry.commands);
   return entry.commandLine || 'Unknown command';
@@ -41,6 +52,7 @@ function getHistoryDisplay(entry) {
 
 module.exports = {
   createHistoryEntry,
+  filterHistory,
   getHistoryDisplay,
   readHistory,
   saveHistory,

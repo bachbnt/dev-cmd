@@ -1,0 +1,21 @@
+name: DevCmd
+description: Run DevCmd lifecycle commands, such as the quality check, for the detected project.
+inputs:
+  command:
+    description: DevCmd lifecycle command to run (check, test, build, lint, audit, ...).
+    default: check
+  path:
+    description: Project path.
+    default: .
+  version:
+    description: Version or dist-tag of @bachbntdev/devcmd to run.
+    default: latest
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        DEVCMD_COMMAND: ${{ inputs.command }}
+        DEVCMD_PATH: ${{ inputs.path }}
+        DEVCMD_VERSION: ${{ inputs.version }}
+      run: npx --yes "@bachbntdev/devcmd@${DEVCMD_VERSION}" "${DEVCMD_COMMAND}" "${DEVCMD_PATH}"

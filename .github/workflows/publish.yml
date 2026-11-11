@@ -1,0 +1,44 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - name: Skip when NPM_TOKEN is not configured
+        if: env.NPM_TOKEN == ''
+        run: echo "::warning::NPM_TOKEN is not set; skipping npm publish. Add the secret and re-run this workflow."
+      - if: env.NPM_TOKEN != ''
+        uses: actions/checkout@v4
+      - if: env.NPM_TOKEN != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          registry-url: https://registry.npmjs.org
+      - name: Verify the release tag matches package.json
+        if: env.NPM_TOKEN != ''
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ "v${VERSION}" != "${RELEASE_TAG}" ]; then
+            echo "Release tag ${RELEASE_TAG} does not match package.json version v${VERSION}." >&2
+            exit 1
+          fi
+      - if: env.NPM_TOKEN != ''
+        run: npm ci
+      - if: env.NPM_TOKEN != ''
+        run: npm test
+      - if: env.NPM_TOKEN != ''
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

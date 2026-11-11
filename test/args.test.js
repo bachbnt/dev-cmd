@@ -28,9 +28,42 @@ test('parseArgs reads target and project presets', () => {
     editor: undefined,
     opener: undefined,
     list: false,
+    json: false,
+    fix: false,
+    yes: false,
+    filter: undefined,
+    search: undefined,
     values: {},
   });
   assert.deepEqual(result.positionals, ['my-app']);
+});
+
+test('parseArgs reads workspace, JSON, fix, search, and trust options', () => {
+  const lint = parseArgs(['lint', '--filter', '@acme/web', '--fix']);
+  assert.equal(lint.options.filter, '@acme/web');
+  assert.equal(lint.options.fix, true);
+  assert.equal(parseArgs(['inspect', '--json']).options.json, true);
+  assert.equal(parseArgs(['history', '--search', 'next']).options.search, 'next');
+  assert.equal(parseArgs(['trust', '-y']).options.yes, true);
+  assert.throws(() => parseArgs(['test', '--filter']), /--filter requires/);
+  assert.throws(() => parseArgs(['test', '--filter', '../outside']), /--filter requires/);
+  assert.throws(() => parseArgs(['test', '--filter', '-rf']), /--filter requires/);
+  assert.throws(() => parseArgs(['history', '--search']), /--search requires/);
+});
+
+test('command flag validation limits new options to their commands', () => {
+  const check = (argv) => {
+    const { command, options } = parseArgs(argv);
+    validateCommandFlags(command, options);
+  };
+  assert.doesNotThrow(() => check(['test', '--filter', 'web']));
+  assert.doesNotThrow(() => check(['lint', '--fix']));
+  assert.doesNotThrow(() => check(['doctor', '--json']));
+  assert.throws(() => check(['install', '--filter', 'web']), /--filter is only supported/);
+  assert.throws(() => check(['test', '--fix']), /--fix is only supported/);
+  assert.throws(() => check(['build', '--json']), /--json is only supported/);
+  assert.throws(() => check(['run', '--search', 'x']), /--search is only supported/);
+  assert.throws(() => check(['run', '--yes']), /--yes is only supported/);
 });
 
 test('parseArgs supports long package manager option', () => {

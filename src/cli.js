@@ -7,7 +7,10 @@ const { handleClone } = require('./handlers/clone');
 const { handleMcp } = require('./handlers/mcp');
 const { handleDeviceCommand, handleDeviceList } = require('./handlers/devices');
 const { handleAgain, handleHistory, rebuildHistoryCommands } = require('./handlers/history');
+const { runJson } = require('./handlers/json');
 const { handleInspect, handleLifecycle } = require('./handlers/lifecycle');
+const { handleDocker, handleEnv } = require('./handlers/tools');
+const { handleParallel, handleTask, handleTrust } = require('./handlers/workflow');
 const { LIFECYCLE_COMMANDS } = require('./constants');
 const { applyConfigDefaults, handleInit, handleScaffold } = require('./handlers/scaffold');
 const {
@@ -42,6 +45,11 @@ function printHelp(pc, definitions = frameworkDefinitions, openerRegistry) {
     const label = action.charAt(0).toUpperCase() + action.slice(1);
     console.log(`  ${pc.magenta(action.padEnd(16))} ${pc.dim(`${label} the detected project`)}`);
   }
+  console.log(`  ${pc.magenta('task'.padEnd(16))} ${pc.dim('List or run project tasks (package.json scripts, .devcmd.json)')}`);
+  console.log(`  ${pc.magenta('parallel'.padEnd(16))} ${pc.dim('Run a lifecycle action in several projects at once')}`);
+  console.log(`  ${pc.magenta('trust'.padEnd(16))} ${pc.dim('Review and trust the project .devcmd.json profile')}`);
+  console.log(`  ${pc.magenta('env'.padEnd(16))} ${pc.dim('Create .env from .env.example, or check for missing variables')}`);
+  console.log(`  ${pc.magenta('docker'.padEnd(16))} ${pc.dim('Run Docker Compose: up, down, build, ps, logs, restart')}`);
   console.log(`  ${pc.magenta('projects'.padEnd(16))} ${pc.dim('Show recently used projects')}`);
   console.log(`  ${pc.magenta('recipes'.padEnd(16))} ${pc.dim('List or validate framework recipes')}`);
   console.log(`  ${pc.magenta('openers'.padEnd(16))} ${pc.dim('List or validate project openers')}`);
@@ -84,6 +92,11 @@ function printHelp(pc, definitions = frameworkDefinitions, openerRegistry) {
   printOption('--editor <executable>', 'Override editor for dev open');
   printOption('--with <opener>', 'Select an opener for dev open');
   printOption('--list', 'List available openers');
+  printOption('--filter <workspace>', 'Target one monorepo workspace (run, test, build, ...)');
+  printOption('--fix', 'Apply automatic fixes (lint only)');
+  printOption('--json', 'Print machine-readable JSON (inspect, doctor, ...)');
+  printOption('--search <text>', 'Filter history by text (history only)');
+  printOption('--yes, -y', 'Skip confirmation (trust only)');
   printOption('--cold-boot', 'Cold boot Android emulator');
   printOption('--shutdown-all', 'Shutdown all iOS simulators');
   printOption('--clear', 'Clear history (history only)');
@@ -105,6 +118,11 @@ const COMMAND_HANDLERS = new Map([
   ['update', handleUpdate],
   ['clone', handleClone],
   ['mcp', handleMcp],
+  ['task', handleTask],
+  ['parallel', handleParallel],
+  ['trust', handleTrust],
+  ['env', handleEnv],
+  ['docker', handleDocker],
   ['devices', handleDeviceList],
   ['android', handleDeviceCommand],
   ['ios', handleDeviceCommand],
@@ -168,6 +186,7 @@ async function main(argv) {
   try {
     validateCommandFlags(command, options, definitions);
     const config = loadConfig();
+    if (options.json) return runJson({ command, options, positionals, config, recipeRegistry, openerRegistry });
     if (command !== 'mcp') p.intro(`${pc.bgCyan(pc.black(` ${BRAND} `))} ${pc.bold(command)}`);
     return await dispatch({
       p,

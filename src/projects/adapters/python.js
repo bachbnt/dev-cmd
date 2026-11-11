@@ -46,6 +46,18 @@ function build(action, project, context) {
     return [createCommand(python, ['-m', 'flask', '--app', 'app', 'run', '--debug'], { cwd: project.root })];
   }
   if (action === 'test') return [createCommand(python, ['-m', 'pytest'], { cwd: project.root })];
+  if (action === 'lint') {
+    const args = ['-m', 'ruff', 'check', ...(context.fix ? ['--fix'] : []), '.'];
+    return [createCommand(python, args, { cwd: project.root })];
+  }
+  if (action === 'format') return [createCommand(python, ['-m', 'ruff', 'format', '.'], { cwd: project.root })];
+  if (action === 'outdated') {
+    return [createCommand(python, ['-m', 'pip', 'list', '--outdated'], { cwd: project.root })];
+  }
+  if (action === 'upgrade') {
+    return [createCommand(python, ['-m', 'pip', 'install', '--upgrade', '-e', '.[dev]'], { cwd: project.root })];
+  }
+  if (action === 'audit') return [createCommand(python, ['-m', 'pip_audit'], { cwd: project.root })];
   if (action === 'build') return [createCommand(python, ['-m', 'build'], { cwd: project.root })];
   if (action === 'reset') {
     return [

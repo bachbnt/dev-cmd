@@ -61,6 +61,12 @@ test('completion generators include lifecycle and framework commands', () => {
   assert.match(zsh, /openers/);
   assert.match(zsh, /android_studio/);
   assert.match(zsh, /antigravity/);
+  for (const name of ['lint', 'format', 'outdated', 'upgrade', 'audit', 'task', 'parallel', 'trust', 'env', 'docker']) {
+    assert.match(bash, new RegExp(`\\b${name}\\b`), name);
+  }
+  for (const option of ['--filter', '--fix', '--json', '--search', '--yes']) {
+    assert.match(zsh, new RegExp(option), option);
+  }
   assert.match(zsh, /#compdef dev devcmd/);
   assert.match(zsh, /compdef _devcmd dev devcmd/);
   assert.match(bash, /complete -F _devcmd_completion dev devcmd/);

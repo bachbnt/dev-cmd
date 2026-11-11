@@ -2,16 +2,17 @@
 
 const { frameworkDefinitions } = require('../config');
 
+const { LIFECYCLE_COMMANDS } = require('../constants');
+
 const SYSTEM_COMMANDS = [
   'doctor',
   'inspect',
-  'install',
-  'run',
-  'test',
-  'build',
-  'clean',
-  'check',
-  'open',
+  ...LIFECYCLE_COMMANDS,
+  'task',
+  'parallel',
+  'trust',
+  'env',
+  'docker',
   'devices',
   'android',
   'ios',
@@ -30,6 +31,7 @@ const OPTIONS = [
   '--dry-run', '--typescript', '--javascript', '--npm', '--pnpm', '--yarn',
   '--git', '--no-git', '--eslint', '--no-eslint', '--no-install', '--python', '--editor',
   '--cold-boot', '--shutdown-all', '--set', '--with', '--list',
+  '--filter', '--fix', '--json', '--search', '--yes',
 ];
 
 function commandNames(definitions = frameworkDefinitions) {

@@ -1,11 +1,10 @@
 // Copyright (c) 2026 bachbnt
 
 const fs = require('fs');
-const path = require('path');
 const { HISTORY_FILE, frameworkDefinitions } = require('../config');
 const { buildAndroidCommands, buildIOSBootCommands, buildIOSShutdownCommands } = require('../commands/devices');
 const { buildFrameworkCommands, builtInRegistry } = require('../commands/frameworks');
-const { getHistoryDisplay, readHistory } = require('../commands/history');
+const { filterHistory, getHistoryDisplay, readHistory } = require('../commands/history');
 const { isCommandSequence } = require('../runner/command');
 const { executeCommands } = require('../runtime/execute');
 
@@ -29,14 +28,12 @@ function handleHistory(context) {
     return 0;
   }
 
-  let history = readHistory().slice(0, 10);
-  if (options.project) {
-    const filter = path.resolve(options.project);
-    history = history.filter((entry) => entry.projectPath === filter);
-  }
+  const history = filterHistory(readHistory(), options).slice(0, 10);
 
   if (history.length === 0) {
-    p.outro('No successful commands in history yet.');
+    p.outro(options.project || options.search
+      ? 'No history entries match the filter.'
+      : 'No successful commands in history yet.');
     return 0;
   }
   p.note(

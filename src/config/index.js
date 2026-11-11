@@ -11,6 +11,7 @@ const HISTORY_FILE = path.join(os.homedir(), '.devcmd', 'history.json');
 const OPENERS_DIR = path.join(os.homedir(), '.devcmd', 'openers');
 const PROJECTS_FILE = path.join(os.homedir(), '.devcmd', 'projects.json');
 const RECIPES_DIR = path.join(os.homedir(), '.devcmd', 'recipes');
+const TRUST_FILE = path.join(os.homedir(), '.devcmd', 'trusted.json');
 const PACKAGE_MANAGERS = ['npm', 'pnpm', 'yarn'];
 const DEFAULT_DEVICES = {
   android: 'Pixel_9_Pro_Fold',
@@ -28,6 +29,7 @@ module.exports = {
   PACKAGE_MANAGERS,
   PROJECTS_FILE,
   RECIPES_DIR,
+  TRUST_FILE,
   VERSION: version,
   frameworkDefinitions,
 };

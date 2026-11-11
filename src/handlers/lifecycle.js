@@ -62,7 +62,7 @@ async function handleLifecycle(context) {
   const project = detectProject(projectPath, { registry: context.recipeRegistry });
   const commands = command === 'open'
     ? buildOpenCommands(project, openerName, config, context.openerRegistry, { editor: options.editor })
-    : buildLifecycleCommands(command, project, { config });
+    : buildLifecycleCommands(command, project, { config, filter: options.filter, fix: options.fix });
 
   return executeCommands(p, pc, commands, {
     command,
@@ -89,6 +89,15 @@ function handleInspect(context) {
   if (inspection.packageManager) lines.push(`Package manager: ${inspection.packageManager}`);
   if (inspection.xcode) lines.push(`Xcode: ${inspection.xcode.kind} ${inspection.xcode.file}`);
   if (inspection.recipeSource) lines.push(`Recipe: ${inspection.recipeSource}`);
+  if (inspection.profile) {
+    lines.push(`Profile: ${inspection.profile.file} (${inspection.profile.trusted ? 'trusted' : 'untrusted, run dev trust'})`);
+  }
+  if (inspection.workspaces.length) {
+    lines.push(`Workspaces: ${inspection.workspaces.map((workspace) => workspace.name).join(', ')}`);
+  }
+  if (inspection.tasks.length) {
+    lines.push(`Tasks: ${inspection.tasks.map((task) => task.name).join(', ')}`);
+  }
   lines.push('');
   for (const action of inspection.actions) {
     lines.push(

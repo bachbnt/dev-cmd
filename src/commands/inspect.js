@@ -3,12 +3,14 @@
 const { buildLifecycleCommands, buildOpenCommands } = require('./lifecycle');
 const { formatSequence } = require('../runner/command');
 const { LIFECYCLE_COMMANDS } = require('../constants');
+const { isTrusted } = require('../projects/profile');
+const { listTasks } = require('./lifecycle');
 
-function inspectAction(action, project, config, openerRegistry) {
+function inspectAction(action, project, config, openerRegistry, options = {}) {
   try {
     const commands = action === 'open'
       ? buildOpenCommands(project, undefined, config, openerRegistry)
-      : buildLifecycleCommands(action, project, { config });
+      : buildLifecycleCommands(action, project, { config, trustFile: options.trustFile });
     return {
       action,
       available: true,
@@ -20,7 +22,7 @@ function inspectAction(action, project, config, openerRegistry) {
   }
 }
 
-function inspectProject(project, config, openerRegistry) {
+function inspectProject(project, config, openerRegistry, options = {}) {
   return {
     name: project.name,
     type: project.type,
@@ -28,7 +30,14 @@ function inspectProject(project, config, openerRegistry) {
     packageManager: project.packageManager,
     xcode: project.xcode,
     recipeSource: project.recipe?.source,
-    actions: LIFECYCLE_COMMANDS.map((action) => inspectAction(action, project, config, openerRegistry)),
+    profile: project.profile
+      ? { file: project.profile.file, trusted: isTrusted(project.profile, options) }
+      : undefined,
+    workspaces: (project.workspaces || []).map(({ name, dir }) => ({ name, dir })),
+    tasks: listTasks(project),
+    actions: LIFECYCLE_COMMANDS.map(
+      (action) => inspectAction(action, project, config, openerRegistry, options)
+    ),
   };
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Copyright (c) 2026 bachbnt
 
-const MIN_NODE_VERSION = '24.13.0';
+const MIN_NODE_VERSION = '20.12.0';
 
 function compareVersions(current, required) {
   const currentParts = current.split('.').map(Number);

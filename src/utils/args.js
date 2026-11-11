@@ -1,6 +1,9 @@
 // Copyright (c) 2026 bachbnt
 
 const { PACKAGE_MANAGERS, frameworkDefinitions } = require('../config');
+const { FILTER_COMMANDS, JSON_COMMANDS } = require('../constants');
+
+const FILTER_PATTERN = /^[@A-Za-z0-9._][@A-Za-z0-9._/-]*$/;
 
 function parseArgs(argv) {
   const args = [...argv];
@@ -21,6 +24,11 @@ function parseArgs(argv) {
     editor: undefined,
     opener: undefined,
     list: false,
+    json: false,
+    fix: false,
+    yes: false,
+    filter: undefined,
+    search: undefined,
     values: {},
   };
   const positionals = [];
@@ -45,6 +53,20 @@ function parseArgs(argv) {
       }
     }
     else if (arg === '--list') options.list = true;
+    else if (arg === '--json') options.json = true;
+    else if (arg === '--fix') options.fix = true;
+    else if (arg === '--yes' || arg === '-y') options.yes = true;
+    else if (arg === '--filter') {
+      options.filter = args.shift();
+      if (!options.filter || !FILTER_PATTERN.test(options.filter) || options.filter.includes('..')) {
+        throw new Error('--filter requires a workspace package name or directory.');
+      }
+    } else if (arg === '--search') {
+      options.search = args.shift();
+      if (!options.search || options.search.startsWith('-')) {
+        throw new Error('--search requires text.');
+      }
+    }
     else if (arg === '--typescript' || arg === '--ts') options.typescript = true;
     else if (arg === '--javascript' || arg === '--js') options.typescript = false;
     else if (arg === '--git') options.git = true;
@@ -115,6 +137,21 @@ function validateCommandFlags(command, options, definitions = frameworkDefinitio
   }
   if (options.editor && command !== 'open') {
     throw new Error('--editor is only supported by the open command.');
+  }
+  if (options.json && !JSON_COMMANDS.includes(command)) {
+    throw new Error(`--json is only supported by: ${JSON_COMMANDS.join(', ')}.`);
+  }
+  if (options.fix && command !== 'lint') {
+    throw new Error('--fix is only supported by the lint command.');
+  }
+  if (options.yes && command !== 'trust') {
+    throw new Error('--yes is only supported by the trust command.');
+  }
+  if (options.filter && !FILTER_COMMANDS.includes(command)) {
+    throw new Error(`--filter is only supported by: ${FILTER_COMMANDS.join(', ')}.`);
+  }
+  if (options.search && command !== 'history') {
+    throw new Error('--search is only supported by the history command.');
   }
   if (options.editor && options.opener) {
     throw new Error('--editor and --with cannot be used together.');

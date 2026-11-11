@@ -8,7 +8,7 @@ const { loadRecipeFile } = require('../recipes');
 const { loadOpenerFile } = require('../openers');
 const { executeCommands } = require('../runtime/execute');
 
-const PACKAGE_URL = 'https://github.com/bachbnt/dev-cmd/archive/refs/heads/main.tar.gz';
+const PACKAGE_SPEC = '@bachbntdev/devcmd@latest';
 
 function printConfig(p, config) {
   p.note(JSON.stringify(config, null, 2), `Config: ${CONFIG_FILE}`);
@@ -33,7 +33,7 @@ async function handleUpdate(context) {
   const { p, pc, options } = context;
   p.log.info(`Current version: ${VERSION}`);
   return executeCommands(p, pc, [
-    { executable: 'npm', args: ['install', '--global', PACKAGE_URL] },
+    { executable: 'npm', args: ['install', '--global', PACKAGE_SPEC] },
   ], { command: 'update' }, options);
 }
 
@@ -44,6 +44,10 @@ function handleDoctor(context) {
     const marker = check.found ? pc.green('OK') : check.required ? pc.red('MISSING') : pc.yellow('optional');
     return `${marker.padEnd(18)} ${check.name.padEnd(18)} ${check.version || check.path || ''}`;
   }).join('\n'), 'Development environment');
+  const hints = checks.filter((check) => !check.found && check.hint);
+  if (hints.length > 0) {
+    p.note(hints.map((check) => `${check.name.padEnd(18)} ${check.hint}`).join('\n'), 'How to install missing tools');
+  }
   const missing = checks.filter((check) => check.required && !check.found);
   p.outro(missing.length ? 'Required tools are missing.' : 'DevCmd is ready.');
   return missing.length ? 1 : 0;

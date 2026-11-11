@@ -13,12 +13,13 @@ Review untrusted input from parsing through process execution and persisted repl
 
 1. Trace inputs through `src/utils/args.js`, handlers, command builders, and `src/runner/`.
 2. Confirm processes use structured `{ executable, args, cwd? }` values and never enable the child-process `shell` option.
-3. Include recipe and opener loading, placeholder resolution, file destinations, copy sources, executable mappings, and user overrides in the input trace.
+3. Include recipe and opener loading, placeholder resolution, file destinations, copy sources, executable mappings, user overrides, `.devcmd.json` profiles and their trust hashes in `~/.devcmd/trusted.json`, workspace `--filter` values, and MCP tool arguments in the input trace.
 4. Check project names, paths, executable overrides, history entries, and config values before use.
 5. Verify formatting functions are display-only and never become executable input.
 6. Review clean/delete behavior for root escape, symlink, and overbroad deletion risks.
-7. Check missing executable handling, child exit codes, `SIGINT`, and `SIGTERM` forwarding.
-8. Add adversarial tests using metacharacters, whitespace, malformed persisted data, unsafe recipes, and missing binaries.
+7. Check missing executable handling, child exit codes, `SIGINT`, and `SIGTERM` forwarding, including the parallel runner and MCP background processes (`stop_process`, server shutdown).
+8. Confirm no MCP tool or handler can approve a profile on the user's behalf, that `scaffold_project` validates every argument before building its `dev` child process, and that `dev env` never prints or overwrites values.
+9. Add adversarial tests using metacharacters, whitespace, malformed persisted data, unsafe recipes and profiles, option-like values such as `--evil`, and missing binaries.
 
 ## Findings
 

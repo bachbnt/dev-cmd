@@ -1,7 +1,7 @@
 {
-  "name": "devcmd",
+  "name": "@bachbntdev/devcmd",
   "version": "2.6.5",
-  "description": "DevCmd project scaffolding, lifecycle, and development environment CLI",
+  "description": "DevCmd project scaffolding, lifecycle, and development environment CLI with an MCP server for AI agents",
   "bin": {
     "dev": "./dev",
     "devcmd": "./dev"
@@ -14,12 +14,16 @@
     "install-local": "./scripts/install-local.sh",
     "install-remote": "./scripts/install-remote.sh",
     "release": "./scripts/release.sh",
-    "test": "node --test"
+    "test": "node --test",
+    "prepublishOnly": "npm test"
   },
   "keywords": [
     "cli",
     "scaffolding",
-    "development"
+    "development",
+    "monorepo",
+    "mcp",
+    "devtools"
   ],
   "author": "bachbnt",
   "license": "ISC",
@@ -32,7 +36,10 @@
     "url": "https://github.com/bachbnt/dev-cmd/issues"
   },
   "engines": {
-    "node": ">=24.13.0"
+    "node": ">=20.12.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@clack/prompts": "^1.5.1",

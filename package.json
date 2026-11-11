@@ -1,6 +1,6 @@
 {
   "name": "@bachbntdev/devcmd",
-  "version": "2.6.5",
+  "version": "2.7.0",
   "description": "DevCmd project scaffolding, lifecycle, and development environment CLI with an MCP server for AI agents",
   "bin": {
     "dev": "./dev",

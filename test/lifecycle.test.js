@@ -172,7 +172,7 @@ test('open ios finds a React Native Xcode workspace in the ios directory', () =>
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'devcmd-open-ios-'));
   fs.mkdirSync(path.join(root, 'ios', 'App.xcworkspace'), { recursive: true });
   assert.deepEqual(
-    buildOpenCommands({ ...nodeProject, root }, 'ios', { editor: 'code' }),
+    buildOpenCommands({ ...nodeProject, root }, 'ios', { editor: 'code' }, undefined, { platform: 'darwin' }),
     [{ executable: 'open', args: [path.join(root, 'ios', 'App.xcworkspace')] }]
   );
 });

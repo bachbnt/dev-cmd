@@ -14,7 +14,7 @@ test('findExecutable searches PATH without a shell', () => {
   fs.writeFileSync(executable, windows ? '@echo off\r\n' : '#!/bin/sh\n');
   if (!windows) fs.chmodSync(executable, 0o755);
   const found = findExecutable('my-tool', { env: { PATH: directory } });
-  assert.equal(windows ? found.toLowerCase() : found, executable);
+  assert.equal(windows ? found.toLowerCase() : found, windows ? executable.toLowerCase() : executable);
   assert.equal(findExecutable('missing', { env: { PATH: directory } }), undefined);
 });
 

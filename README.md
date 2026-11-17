@@ -143,10 +143,10 @@ When this repository is already available on macOS, double-click `commands/insta
 ### Install a tagged release
 
 <!-- devcmd-release-version:start -->
-For a reproducible released snapshot, install a specific GitHub tag. The tag matching the current package version is `v2.7.1`:
+For a reproducible released snapshot, install a specific GitHub tag. The tag matching the current package version is `v2.8.0`:
 
 ```bash
-npm install --global https://github.com/bachbnt/dev-cmd/archive/refs/tags/v2.7.1.tar.gz
+npm install --global https://github.com/bachbnt/dev-cmd/archive/refs/tags/v2.8.0.tar.gz
 ```
 <!-- devcmd-release-version:end -->
 

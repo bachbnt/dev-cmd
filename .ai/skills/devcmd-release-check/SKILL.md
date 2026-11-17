@@ -12,7 +12,7 @@ Treat release publication as consequential: validate first and publish only when
 ## Workflow
 
 1. Inspect `package.json`, `package-lock.json`, `scripts/release.sh`, `scripts/release-version.js`, `scripts/sync-release-version.js`, `commands/release.command`, `.github/workflows/`, and release tests.
-2. Confirm the branch is `main`, `origin` is correct, local is not behind remote, and the target tag does not exist.
+2. Confirm the branch is `main`, `origin` is correct, local is not behind remote, and the target tag does not exist. Confirm the latest CI run on `main` is green for every OS and Node.js version, including the Windows jobs and the installed-CLI smoke test.
 3. Confirm package and lockfile versions match the `vX.Y.Z` tag.
 4. Run `npm test`, `npm pack --dry-run`, `git diff --check`, and `npm run release -- <selection> --dry-run`.
 5. Verify the package exposes both `dev` and `devcmd` and excludes development-only files.

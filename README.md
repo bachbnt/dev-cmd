@@ -54,7 +54,7 @@ DevCmd is an interactive development CLI for scaffolding projects, detecting exi
 
 ## Requirements
 
-- Node.js 20.12 or newer, including npm. CI covers Node.js 20, 22, and 24.
+- Node.js 20.12 or newer, including npm. CI covers Node.js 20, 22, and 24 on macOS, Linux, and Windows.
 - Android Studio is only required for Android emulator features.
 - Xcode is only required for iOS simulator features.
 - Framework SDKs are only required for the frameworks you use, such as Flutter or Python.
@@ -84,6 +84,28 @@ npm uninstall --global @bachbntdev/devcmd
 ```
 
 If you installed an older release from a GitHub archive, it was registered as `devcmd`. Remove it first with `npm uninstall --global devcmd`.
+
+### Windows
+
+DevCmd supports Windows. It is tested in PowerShell and Git Bash on GitHub's `windows-latest` runner; Command Prompt and older Windows versions are not tested. Install it the same way as on other systems:
+
+```powershell
+npm install --global @bachbntdev/devcmd
+dev doctor
+```
+
+CI runs the full test suite on `windows-latest` with Node.js 20, 22, and 24, and a smoke test that installs the packed package globally, scaffolds a React project, runs `dev install` and `dev build` on it, and scaffolds a Python project.
+
+Verified on Windows: Node.js framework scaffolding and lifecycle (npm), workspaces and `--filter`, `.devcmd.json` profiles, tasks, `dev parallel`, `dev env`, `--json`, the MCP server, and the Python project template. Not verified on Windows: Flutter, Android and iOS tooling, `dev devices`, `dev docker`, pnpm and Yarn, and installing or testing Python dependencies.
+
+How it works and what to know:
+
+- `npm`, `npx`, `pnpm`, `yarn`, `code`, and `gradlew.bat` are `.cmd` or `.bat` scripts that Node.js cannot start without `cmd.exe`. On Windows DevCmd starts them through [cross-spawn](https://github.com/moxystudio/node-cross-spawn), which escapes every argument; the commands are still built from an executable and an argument list, never a command string.
+- An argument containing `%`, a line break, or a null character is rejected for those scripts, because `cmd.exe` would expand or split it. Project names and workspace names cannot contain these characters anyway.
+- Configuration, history, recipes, openers, and trusted profiles live under `%USERPROFILE%\.devcmd`.
+- The `notify` setting does not send notifications on Windows.
+- `dev completion` generates scripts for bash and zsh only (for example in Git Bash).
+- The contributor scripts `scripts/*.sh` and `commands/*.command` need a POSIX shell. Use Git Bash or WSL to run `npm run release` or `npm run install-local`.
 
 ### Download from GitHub
 

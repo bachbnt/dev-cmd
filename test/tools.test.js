@@ -79,6 +79,35 @@ test('doctor reports install hints for tools', () => {
   assert.ok(tools.every((tool) => typeof tool.hint === 'string' && tool.hint));
 });
 
+test('doctor install hints match the operating system', () => {
+  const hints = (platform) => Object.fromEntries(
+    checkTools({ python: 'python3' }, { env: { PATH: '' }, platform }).map((tool) => [tool.name, tool.hint])
+  );
+  const windows = hints('win32');
+  assert.match(windows['Node.js'], /winget install OpenJS\.NodeJS\.LTS/);
+  assert.match(windows.Git, /winget install Git\.Git/);
+  assert.match(windows.Python, /winget install Python\.Python/);
+  assert.match(windows.pnpm, /npm install --global pnpm/);
+  assert.match(windows['Android adb'], /%LOCALAPPDATA%/);
+  assert.equal('Xcode' in windows, false);
+
+  const mac = hints('darwin');
+  assert.match(mac.Git, /xcode-select/);
+  assert.match(mac.Python, /brew install python/);
+  assert.match(mac.Xcode, /App Store/);
+
+  const linux = hints('linux');
+  assert.match(linux.Git, /apt install git/);
+  assert.match(linux.pnpm, /corepack enable pnpm/);
+
+  for (const platform of ['win32', 'darwin', 'linux']) {
+    for (const [name, hint] of Object.entries(hints(platform))) {
+      assert.equal(typeof hint, 'string', `${platform} ${name}`);
+      assert.ok(hint.length > 0, `${platform} ${name}`);
+    }
+  }
+});
+
 test('JSON output exposes structured data and a doctor exit code', () => {
   const config = { python: 'python3', opener: 'vscode' };
   assert.deepEqual(collectJson({ command: 'config', config, positionals: [], options: {} }).data, config);

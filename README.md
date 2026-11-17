@@ -87,14 +87,26 @@ If you installed an older release from a GitHub archive, it was registered as `d
 
 ### Windows
 
-DevCmd supports Windows. It is tested in PowerShell and Git Bash on GitHub's `windows-latest` runner; Command Prompt and older Windows versions are not tested. Install it the same way as on other systems:
+DevCmd supports Windows. It is tested in PowerShell and Git Bash on GitHub's `windows-latest` runner; Command Prompt and older Windows versions are not tested.
 
-```powershell
-npm install --global @bachbntdev/devcmd
-dev doctor
-```
+1. Install Node.js 20.12 or newer and Git, for example with winget:
 
-CI runs the full test suite on `windows-latest` with Node.js 20, 22, and 24, and a smoke test that installs the packed package globally, scaffolds a React project, runs `dev install` and `dev build` on it, and scaffolds a Python project.
+   ```powershell
+   winget install OpenJS.NodeJS.LTS
+   winget install Git.Git
+   ```
+
+2. Open a new terminal so `PATH` is refreshed, then install DevCmd and check the toolchain:
+
+   ```powershell
+   npm install --global @bachbntdev/devcmd
+   dev help
+   dev doctor
+   ```
+
+`dev doctor` prints a Windows install command (usually `winget install ...`) for every tool it cannot find. To try DevCmd without installing it, run `npx @bachbntdev/devcmd doctor`. Update later with `dev update`.
+
+CI runs the full test suite on `windows-latest` with Node.js 20, 22, and 24, and a smoke test that installs the packed package globally, scaffolds a React project (which installs its dependencies) and builds it, scaffolds an Express project with `--no-install`, and scaffolds a Python project.
 
 Verified on Windows: Node.js framework scaffolding and lifecycle (npm), workspaces and `--filter`, `.devcmd.json` profiles, tasks, `dev parallel`, `dev env`, `--json`, the MCP server, and the Python project template. Not verified on Windows: Flutter, Android and iOS tooling, `dev devices`, `dev docker`, pnpm and Yarn, and installing or testing Python dependencies.
 
@@ -106,6 +118,18 @@ How it works and what to know:
 - The `notify` setting does not send notifications on Windows.
 - `dev completion` generates scripts for bash and zsh only (for example in Git Bash).
 - The contributor scripts `scripts/*.sh` and `commands/*.command` need a POSIX shell. Use Git Bash or WSL to run `npm run release` or `npm run install-local`.
+
+Troubleshooting:
+
+- **`dev : File ...\dev.ps1 cannot be loaded because running scripts is disabled on this system`.** npm installs a PowerShell wrapper next to the Command Prompt one, and Windows blocks unsigned PowerShell scripts by default. Allow locally created scripts for your user, then open a new terminal:
+
+  ```powershell
+  Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+  ```
+
+  You can also run DevCmd from Command Prompt or Git Bash, which do not use the PowerShell wrapper. CI does not enforce an execution policy, so this case is documented from how Windows and npm behave, not tested.
+- **`'dev' is not recognized` after installing.** Open a new terminal. If it still fails, run `npm config get prefix` and make sure that directory is on your `PATH`.
+- **`dev` conflicts with another command.** Use the full name, `devcmd`.
 
 ### Download from GitHub
 

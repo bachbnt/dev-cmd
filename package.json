@@ -44,6 +44,7 @@
   "dependencies": {
     "@clack/prompts": "^1.5.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "cross-spawn": "^7.0.6",
     "picocolors": "^1.1.1"
   }
 }

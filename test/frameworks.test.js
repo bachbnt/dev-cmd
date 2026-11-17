@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
 const { buildFrameworkCommands } = require('../src/commands/frameworks');
 const {
   buildAndroidCommands,
@@ -172,7 +173,7 @@ test('Python frameworks create a virtual environment and install the project', (
   assert.deepEqual(commands[0].args.slice(1), ['fastapi', 'my-api']);
   assert.deepEqual(commands[1], {
     executable: process.platform === 'win32' ? 'python' : 'python3',
-    args: ['-m', 'venv', 'my-api/.venv'],
+    args: ['-m', 'venv', path.join('my-api', '.venv')],
   });
   assert.deepEqual(commands[2].args, ['-m', 'pip', 'install', '-e', 'my-api[dev]']);
 });

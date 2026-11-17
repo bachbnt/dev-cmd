@@ -1,7 +1,7 @@
 // Copyright (c) 2026 bachbnt
 
-const { spawn } = require('child_process');
 const { SIGNAL_EXIT_CODES } = require('./process');
+const { spawnProcess } = require('./spawn');
 
 function createLinePrefixer(label, write) {
   let pending = '';
@@ -78,7 +78,7 @@ function runJob(job, context) {
 async function runParallel(jobs, options = {}) {
   const signalSource = options.signalSource || process;
   const context = {
-    spawnImpl: options.spawnImpl || spawn,
+    spawnImpl: options.spawnImpl || spawnProcess,
     write: options.write || ((text) => process.stdout.write(text)),
     children: new Set(),
     stopped: false,

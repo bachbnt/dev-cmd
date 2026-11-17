@@ -1,10 +1,10 @@
 // Copyright (c) 2026 bachbnt
 
-const { spawn } = require('child_process');
 const { SIGNAL_EXIT_CODES } = require('./process');
+const { spawnProcess } = require('./spawn');
 
 function runProcessCaptured(command, options = {}) {
-  const spawnImpl = options.spawnImpl || spawn;
+  const spawnImpl = options.spawnImpl || spawnProcess;
   const maxOutputBytes = Number.isInteger(options.maxOutputBytes) && options.maxOutputBytes >= 0
     ? options.maxOutputBytes
     : Infinity;

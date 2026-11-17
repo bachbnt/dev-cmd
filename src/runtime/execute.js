@@ -1,11 +1,11 @@
 // Copyright (c) 2026 bachbnt
 
-const { spawn } = require('child_process');
 const { createHistoryEntry, saveHistory } = require('../commands/history');
 const { recordProject } = require('../projects/recent');
 const { assertExecutables } = require('../runner/check');
 const { formatSequence } = require('../runner/command');
 const { runSequence } = require('../runner/process');
+const { spawnProcess } = require('../runner/spawn');
 
 function buildNotificationCommand(message, platform = process.platform) {
   if (platform === 'darwin') {
@@ -31,7 +31,7 @@ function buildNotificationCommand(message, platform = process.platform) {
 function sendNotification(message) {
   try {
     const command = buildNotificationCommand(message);
-    if (command) spawn(command.executable, command.args, { stdio: 'ignore' });
+    if (command) spawnProcess(command.executable, command.args, { stdio: 'ignore' });
   } catch {}
 }
 

@@ -88,7 +88,11 @@ test('Python check runs ruff when configured, then tests and build', () => {
 test('Android and iOS lifecycle use native build tools', () => {
   assert.deepEqual(
     buildLifecycleCommands('build', { type: 'android', root: '/tmp/android' }),
-    [{ executable: './gradlew', args: ['assembleDebug'], cwd: '/tmp/android' }]
+    [{
+      executable: process.platform === 'win32' ? 'gradlew.bat' : './gradlew',
+      args: ['assembleDebug'],
+      cwd: '/tmp/android',
+    }]
   );
   assert.deepEqual(
     buildLifecycleCommands('build', {

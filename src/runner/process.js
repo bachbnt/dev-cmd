@@ -1,6 +1,6 @@
 // Copyright (c) 2026 bachbnt
 
-const { spawn } = require('child_process');
+const { spawnProcess } = require('./spawn');
 
 const SIGNAL_EXIT_CODES = {
   SIGINT: 130,
@@ -8,7 +8,7 @@ const SIGNAL_EXIT_CODES = {
 };
 
 function runProcess(command, options = {}) {
-  const spawnImpl = options.spawnImpl || spawn;
+  const spawnImpl = options.spawnImpl || spawnProcess;
   const signalSource = options.signalSource || process;
   const stdio = options.stdio || 'inherit';
 

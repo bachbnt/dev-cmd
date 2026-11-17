@@ -114,7 +114,7 @@ test('custom opener is available to the CLI without source changes', () => {
 
   const result = spawnSync(process.execPath, [path.join(__dirname, '..', 'dev'), 'open', 'fleet', project, '--dry-run'], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home },
+    env: { ...process.env, HOME: home, USERPROFILE: home },
   });
   assert.equal(result.status, 0, result.stderr);
   if (process.platform === 'darwin') assert.match(result.stdout, /open -a Fleet/);
@@ -130,7 +130,7 @@ test('external opener validation ignores a broken installed opener', () => {
 
   const result = spawnSync(process.execPath, [path.join(__dirname, '..', 'dev'), 'openers', 'validate', external], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home },
+    env: { ...process.env, HOME: home, USERPROFILE: home },
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /fleet/);
@@ -144,7 +144,7 @@ test('CLI help lists built-in and custom openers with aliases', () => {
 
   const result = spawnSync(process.execPath, [path.join(__dirname, '..', 'dev'), 'help'], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home },
+    env: { ...process.env, HOME: home, USERPROFILE: home },
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Openers:/);

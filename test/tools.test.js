@@ -61,13 +61,15 @@ test('docker commands use compose with discrete arguments', () => {
 });
 
 test('history filter combines project and text search', () => {
+  const first = path.resolve('a');
+  const second = path.resolve('b');
   const history = [
-    { command: 'next', projectName: 'site', projectPath: '/a', commandLine: 'npx create-next-app site' },
-    { command: 'test', projectName: 'api', projectPath: '/b', commandLine: 'npm run test' },
+    { command: 'next', projectName: 'site', projectPath: first, commandLine: 'npx create-next-app site' },
+    { command: 'test', projectName: 'api', projectPath: second, commandLine: 'npm run test' },
   ];
   assert.equal(filterHistory(history, { search: 'NEXT' }).length, 1);
-  assert.equal(filterHistory(history, { project: '/b' })[0].projectName, 'api');
-  assert.equal(filterHistory(history, { project: '/b', search: 'next' }).length, 0);
+  assert.equal(filterHistory(history, { project: second })[0].projectName, 'api');
+  assert.equal(filterHistory(history, { project: second, search: 'next' }).length, 0);
   assert.equal(filterHistory(history).length, 2);
 });
 

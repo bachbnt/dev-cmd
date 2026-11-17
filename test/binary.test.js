@@ -27,23 +27,45 @@ function createNodeProject() {
   return root;
 }
 
+function isolatedEnv() {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'devcmd-home-'));
+  return { ...process.env, HOME: home, USERPROFILE: home };
+}
+
 test('binary inspect reports detected project and resolved commands', () => {
   const root = createNodeProject();
   const result = spawnSync(process.execPath, [binary, 'inspect', root], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: fs.mkdtempSync(path.join(os.tmpdir(), 'devcmd-home-')) },
+    env: isolatedEnv(),
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Type: next/);
   assert.match(result.stdout, /Package manager: npm/);
-  assert.match(result.stdout, /check\s+\(cd[\s\S]*npm run lint[\s\S]*npm run test[\s\S]*npm run build/);
+});
+
+test('binary inspect --json reports the resolved quality sequence', () => {
+  const root = createNodeProject();
+  const result = spawnSync(process.execPath, [binary, 'inspect', root, '--json'], {
+    encoding: 'utf8',
+    env: isolatedEnv(),
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const inspection = JSON.parse(result.stdout);
+  assert.equal(inspection.type, 'next');
+  assert.equal(inspection.packageManager, 'npm');
+  const check = inspection.actions.find((action) => action.action === 'check');
+  assert.deepEqual(check.commands.map((command) => command.args), [
+    ['run', 'lint'],
+    ['run', 'test'],
+    ['run', 'build'],
+  ]);
 });
 
 test('binary check executes the adapter quality sequence', () => {
   const root = createNodeProject();
   const result = spawnSync(process.execPath, [binary, 'check', root], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: fs.mkdtempSync(path.join(os.tmpdir(), 'devcmd-home-')) },
+    env: isolatedEnv(),
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /lint-passed/);

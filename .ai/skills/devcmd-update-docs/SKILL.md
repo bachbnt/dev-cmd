@@ -26,6 +26,7 @@ Derive documentation from implemented behavior and verified commands, not from a
 - State optional SDK requirements next to the feature that needs them.
 - The npm package is the scoped `@bachbntdev/devcmd`. The unscoped registry name `devcmd` belongs to an unrelated project, so never document it. Keep the GitHub archive URL installation as an alternative and confirm the package exists on npm (`npm view @bachbntdev/devcmd version`) before describing registry installation as available.
 - Keep the minimum Node.js version identical in `package.json`, `package-lock.json`, `dev`, README, and the CI matrix.
+- Make platform claims only for what `.github/workflows/ci.yml` verifies. State explicitly which features are not verified on Windows.
 - Distinguish the latest tagged release from the latest committed source on `main`.
 - State whether repository-only contributor files, including `.ai/skills`, are excluded from the installed package.
 

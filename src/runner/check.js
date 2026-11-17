@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawnSyncProcess } = require('./spawn');
 
 function findExecutable(executable, options = {}) {
   const env = options.env || process.env;
@@ -30,7 +30,7 @@ function findExecutable(executable, options = {}) {
 }
 
 function getVersion(executable, args = ['--version'], options = {}) {
-  const spawnSyncImpl = options.spawnSyncImpl || spawnSync;
+  const spawnSyncImpl = options.spawnSyncImpl || spawnSyncProcess;
   const result = spawnSyncImpl(executable, args, { encoding: 'utf8' });
   if (result.error || result.status !== 0) return undefined;
   const output = `${result.stdout || result.stderr || ''}`.trim();

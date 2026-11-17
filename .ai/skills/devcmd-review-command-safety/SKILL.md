@@ -12,7 +12,7 @@ Review untrusted input from parsing through process execution and persisted repl
 ## Review Order
 
 1. Trace inputs through `src/utils/args.js`, handlers, command builders, and `src/runner/`.
-2. Confirm processes use structured `{ executable, args, cwd? }` values and never enable the child-process `shell` option.
+2. Confirm processes use structured `{ executable, args, cwd? }` values, start only through `src/runner/spawn.js`, and never enable the child-process `shell` option. On Windows the wrapper routes through `cross-spawn`; confirm `.cmd`/`.bat` arguments containing `%`, line breaks, or null characters are rejected and that the Windows-only canary test (`test/spawn.test.js`) still covers new metacharacter cases.
 3. Include recipe and opener loading, placeholder resolution, file destinations, copy sources, executable mappings, user overrides, `.devcmd.json` profiles and their trust hashes in `~/.devcmd/trusted.json`, workspace `--filter` values, and MCP tool arguments in the input trace.
 4. Check project names, paths, executable overrides, history entries, and config values before use.
 5. Verify formatting functions are display-only and never become executable input.

@@ -158,7 +158,7 @@ test('custom recipe appears as a CLI command without modifying source', () => {
   ], {
     cwd: workspace,
     encoding: 'utf8',
-    env: { ...process.env, HOME: home },
+    env: { ...process.env, HOME: home, USERPROFILE: home },
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /node --version example\.com\/demo/);
@@ -202,7 +202,7 @@ test('recipes command lists built-ins and validates an external file', () => {
 
   const list = spawnSync(process.execPath, [binary, 'recipes'], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home },
+    env: { ...process.env, HOME: home, USERPROFILE: home },
   });
   assert.equal(list.status, 0, list.stderr);
   assert.match(list.stdout, /react\s+\[built-in\]/);
@@ -213,7 +213,7 @@ test('recipes command lists built-ins and validates an external file', () => {
 
   const validate = spawnSync(process.execPath, [binary, 'recipes', 'validate', file], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home },
+    env: { ...process.env, HOME: home, USERPROFILE: home },
   });
   assert.equal(validate.status, 0, validate.stderr);
   assert.match(validate.stdout, /custom_api: Custom API recipe/);

@@ -1,15 +1,15 @@
 // Copyright (c) 2026 bachbnt
 
-const { spawn } = require('child_process');
 const { formatSequence } = require('../runner/command');
 const { SIGNAL_EXIT_CODES } = require('../runner/process');
+const { spawnProcess } = require('../runner/spawn');
 
 const DEFAULT_MAX_LOG_BYTES = 256 * 1024;
 const DEFAULT_KILL_GRACE_MS = 3000;
 
 class ProcessManager {
   constructor(options = {}) {
-    this.spawnImpl = options.spawnImpl || spawn;
+    this.spawnImpl = options.spawnImpl || spawnProcess;
     this.maxLogBytes = options.maxLogBytes || DEFAULT_MAX_LOG_BYTES;
     this.killGraceMs = options.killGraceMs ?? DEFAULT_KILL_GRACE_MS;
     this.entries = new Map();

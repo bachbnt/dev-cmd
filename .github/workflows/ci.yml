@@ -60,6 +60,7 @@ jobs:
           dev react smoke-app --typescript --npm --no-git
           cd smoke-app
           dev inspect --json
+          dev install
           dev build
       - name: Scaffold a Python project
         working-directory: ${{ runner.temp }}

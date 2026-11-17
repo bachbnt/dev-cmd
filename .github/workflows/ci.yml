@@ -54,14 +54,21 @@ jobs:
           dev help
           devcmd doctor
           dev inspect --json
-      - name: Scaffold, install, and build a real React project
+      - name: Scaffold a real React project, then build it
         working-directory: ${{ runner.temp }}
         run: |
           dev react smoke-app --typescript --npm --no-git
+          test -d smoke-app/node_modules
           cd smoke-app
           dev inspect --json
-          dev install
           dev build
+      - name: Scaffold an Express project and skip dependency installation
+        working-directory: ${{ runner.temp }}
+        run: |
+          dev express smoke-express --no-git --no-install
+          test ! -d smoke-express/node_modules
+          dev install smoke-express
+          test -d smoke-express/node_modules
       - name: Scaffold a Python project
         working-directory: ${{ runner.temp }}
         run: |

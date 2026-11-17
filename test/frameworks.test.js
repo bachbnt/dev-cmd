@@ -30,13 +30,38 @@ test('React Vite command uses executable and separate arguments', () => {
           '--no-interactive',
         ],
       },
+      { executable: 'npm', args: ['install'], cwd: 'web-app' },
     ]
   );
+});
+
+test('Vite, create-vue, and express-generator scaffolds install dependencies unless skipped', () => {
+  const installs = (command, options) => buildFrameworkCommands(command, 'app', { git: false, ...options })
+    .filter((item) => item.args[0] === 'install');
+  assert.deepEqual(installs('react', { packageManager: 'pnpm' }), [
+    { executable: 'pnpm', args: ['install'], cwd: 'app' },
+  ]);
+  assert.deepEqual(installs('vue', { packageManager: 'yarn' }), [
+    { executable: 'yarn', args: ['install'], cwd: 'app' },
+  ]);
+  assert.deepEqual(installs('express', {}), [{ executable: 'npm', args: ['install'], cwd: 'app' }]);
+  for (const command of ['react', 'vue', 'express']) {
+    assert.deepEqual(installs(command, { noInstall: true }), [], `${command} --no-install`);
+  }
+});
+
+test('dependencies are installed before Git initialization', () => {
+  for (const command of ['react', 'vue', 'express']) {
+    const names = buildFrameworkCommands(command, 'app', { git: true }).map((item) => item.args[0]);
+    assert.ok(names.indexOf('install') > 0, `${command} installs after scaffolding`);
+    assert.ok(names.indexOf('install') < names.indexOf('-C'), `${command} installs before git init`);
+  }
 });
 
 test('framework Git initialization is a separate process', () => {
   assert.deepEqual(buildFrameworkCommands('express', 'api', { git: true }), [
     { executable: 'npx', args: ['express-generator@latest', 'api', '--no-view'] },
+    { executable: 'npm', args: ['install'], cwd: 'api' },
     { executable: 'git', args: ['-C', 'api', 'init'] },
   ]);
 });

@@ -51,6 +51,7 @@ test('legacy structured metadata can be rebuilt without executing its shell stri
         '--no-interactive',
       ],
     },
+    { executable: 'npm', args: ['install'], cwd: 'legacy-app' },
   ]);
 });
 

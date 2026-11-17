@@ -67,6 +67,16 @@
       },
       {
         "type": "run",
+        "executable": {
+          "option": "packageManager",
+          "map": { "npm": "npm", "pnpm": "pnpm", "yarn": "yarn" }
+        },
+        "args": ["install"],
+        "cwd": "{target}",
+        "when": { "option": "noInstall", "equals": false }
+      },
+      {
+        "type": "run",
         "executable": "git",
         "args": ["-C", "{target}", "init"],
         "when": { "option": "git", "equals": true }
@@ -225,6 +235,16 @@
       },
       {
         "type": "run",
+        "executable": {
+          "option": "packageManager",
+          "map": { "npm": "npm", "pnpm": "pnpm", "yarn": "yarn" }
+        },
+        "args": ["install"],
+        "cwd": "{target}",
+        "when": { "option": "noInstall", "equals": false }
+      },
+      {
+        "type": "run",
         "executable": "git",
         "args": ["-C", "{target}", "init"],
         "when": { "option": "git", "equals": true }
@@ -276,6 +296,13 @@
         "type": "run",
         "executable": "npx",
         "args": ["express-generator@latest", "{target}", "--no-view"]
+      },
+      {
+        "type": "run",
+        "executable": "npm",
+        "args": ["install"],
+        "cwd": "{target}",
+        "when": { "option": "noInstall", "equals": false }
       },
       {
         "type": "run",

@@ -254,7 +254,7 @@ dev inspect ../my-project
 | `fastapi` | Minimal FastAPI package with tests and `pyproject.toml` |
 | `flask` | Flask application factory with tests and `pyproject.toml` |
 
-Direct targets use recommended defaults: TypeScript, npm, Git, and ESLint where the selected scaffolder supports them. Run a framework command without a target to configure supported presets interactively.
+Direct targets use recommended defaults: TypeScript, npm, Git, and ESLint where the selected scaffolder supports them. `react`, `vue`, and `express` install dependencies with the selected package manager after scaffolding (`express` always uses npm); pass `--no-install` to skip that step. Run a framework command without a target to configure supported presets interactively.
 
 React recommends using a framework for new production applications. Use `dev next` for a full-stack React framework, or `dev react` when a client-side Vite application is the right fit. React Native recommends a framework, so `dev react_native` uses Expo; use `dev react_native_cli` only when framework constraints do not fit the project.
 

@@ -58,6 +58,10 @@ const COLLECTORS = {
   config({ config }) {
     return { data: config, exitCode: 0 };
   },
+  async ai(context) {
+    const { data, exitCode } = await require('./ai').collectAi(context);
+    return { data, exitCode };
+  },
 };
 
 function registerJsonCollector(command, collector) {

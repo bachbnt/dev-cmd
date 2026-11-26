@@ -30,6 +30,7 @@ DevCmd is an interactive development CLI for scaffolding projects, detecting exi
 - Manage `.env` files and Docker Compose from the same CLI.
 - Print machine-readable output with `--json`.
 - Let AI agents scaffold, inspect, run, and monitor projects through the built-in MCP server.
+- See what Claude Code and Codex cost you, day by day and model by model, with `dev ai`.
 
 ## Screenshots
 
@@ -454,7 +455,7 @@ Supported actions are `up`, `down`, `build`, `ps`, `logs`, and `restart`. DevCmd
 
 ### JSON Output
 
-Add `--json` to print machine-readable JSON on stdout for `inspect`, `doctor`, `projects`, `history`, `recipes`, `openers`, `devices`, and `config`. Errors are written to stderr as `{"error": "..."}` and the exit code is 1. `dev doctor --json` exits 1 when a required tool is missing.
+Add `--json` to print machine-readable JSON on stdout for `inspect`, `doctor`, `projects`, `history`, `recipes`, `openers`, `devices`, `config`, and `ai`. Errors are written to stderr as `{"error": "..."}` and the exit code is 1. `dev doctor --json` exits 1 when a required tool is missing.
 
 ```bash
 dev inspect --json | jq '.actions[] | select(.available) | .command'
@@ -573,9 +574,12 @@ dev config set initializeGit false
 dev config set python python3.13
 dev config set opener cursor
 dev config set notify 10
+dev config set aiBudget 200
 ```
 
 `notify` sets the notification threshold in seconds. DevCmd sends a system notification when a command runs longer than the threshold. Set to `0` to disable (default).
+
+`aiBudget` is the monthly budget in USD for [`dev ai`](#ai-cost). It has no default; `dev config set aiBudget off` removes it.
 
 Default configuration:
 
@@ -588,6 +592,43 @@ Default configuration:
   "notify": 0
 }
 ```
+
+## AI Cost
+
+`dev ai` adds up what the AI coding tools on this computer cost, from the logs they already keep. Claude Code (`~/.claude/projects`) and Codex (`~/.codex/sessions`) are supported. Nothing is sent anywhere and no log content is stored.
+
+```bash
+dev ai                          # this month, day by day
+dev ai today                    # today, by project
+dev ai week --by model          # the last 7 days, by model
+dev ai report --since 2026-11-01 --until 2026-11-15 --by project --tool claude
+dev ai --repo my-app --model sonnet
+dev ai --format csv             # or --format json / --json, for scripts
+dev ai --tools                  # which tools are read, and whether their logs were found
+```
+
+`--by` groups by `day`, `week` (starting Monday), `month`, `project`, `model`, `tool` or `session`. `--since` and `--until` accept `2026-11-01`, `today`, `yesterday`, `7d`, `2w` and `3m`, and belong to `dev ai report` and `--history`. `--tool`, `--model` and `--repo` can be repeated; `--repo` matches the folder name of the project the tool ran in (`--project` stays reserved for `dev history`).
+
+The cost is what the same usage would cost at API prices. On a subscription plan it measures how much you use, not what you are billed. A model without a price shows its tokens and `n/a` or a `*` on the cost, never zero; prices come from `src/ai/data/pricing.toml`. Add or override a model in `~/.config/aicost/pricing.toml` or with `--pricing <file>` (same file format as [aicost](https://github.com/bachbnt/aicost)).
+
+### Budget
+
+```bash
+dev config set aiBudget 200     # USD per month
+dev ai                          # also shows the share used and a straight-line month-end estimate
+dev ai --check                  # exit 1 over budget, 0 under it, 2 when no budget is set
+dev ai --short                  # one line for a status line: "$13.93 today · $1,173.40 this month (587% of $200.00)"
+```
+
+The budget counts this month across every tool and project, whatever filters you pass. The month-end figure is a straight-line estimate from the pace so far, not a promise.
+
+### History
+
+Tools delete old logs. Each `dev ai` run records daily totals per tool and model in `~/.devcmd/ai-daily.json` (numbers only: no project names, sessions or content). A later run never replaces a day with a smaller number, so history survives when a log is deleted. `dev ai --history` shows it (monthly by default; `--by day|week|month|model|tool`). The first run reads all existing logs once to start the history. `--no-snapshot` skips the history file and `--dry-run` writes nothing.
+
+The first scan of a large log folder takes a few seconds. DevCmd keeps a scan cache in `~/.devcmd/ai-scan-cache.json` (numbers and short names only) so later runs read just the new log lines; `--no-cache` ignores it.
+
+Numbers match `aicost` exactly. Run `node scripts/ai-parity.js` to compare the two on your own logs before trusting a change to the readers.
 
 ## Recent Projects
 
@@ -665,7 +706,7 @@ History entries store executables and argument arrays instead of shell command s
 --list
 --filter <workspace>        (run, test, build, check, lint, format, task)
 --fix                       (lint only) Apply automatic fixes
---json                      (inspect, doctor, projects, history, recipes, openers, devices, config)
+--json                      (inspect, doctor, projects, history, recipes, openers, devices, config, ai)
 --yes, -y                   (trust only) Approve without the prompt
 --set <name=value>
 --cold-boot
@@ -673,6 +714,18 @@ History entries store executables and argument arrays instead of shell command s
 --clear                     (history only) Delete the history file
 --project <path>            (history only) Filter history by project path
 --search <text>             (history only) Filter history by text
+--by <group>                (ai only) day, week, month, project, model, tool, session
+--tool <id>                 (ai only, repeatable) claude, codex
+--model <text>              (ai only, repeatable) Model name contains text
+--repo <text>               (ai only, repeatable) Project folder name contains text
+--since <date>, --until <date>   (ai report, ai --history) 2026-11-01, today, 7d, 2w, 3m
+--format <table|json|csv>   (ai only)
+--check, --short            (ai only) Budget exit code, one-line summary
+--history                   (ai only) Daily totals kept beyond the tool logs
+--tools                     (ai only) List the tools whose logs are read
+--pricing <file>            (ai only) Extra price file
+--claude-dir <dir>, --codex-dir <dir>   (ai only) Read logs from another folder
+--no-cache, --no-snapshot, --verbose    (ai only)
 ```
 
 ## Development

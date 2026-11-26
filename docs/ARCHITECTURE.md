@@ -102,6 +102,7 @@ flowchart TD
 | `src/runtime/execute.js` | `executeCommands`: dry-run → kiểm tra yêu cầu → chạy → thông báo → lưu history/project. |
 | `src/devices/` | Liệt kê Android emulator, iOS simulator. |
 | `src/generators/` | Script nội bộ (python-project, clean-project, reset-project) được chạy như child process. |
+| `src/ai/` | **`dev ai`** (chi phí công cụ AI): `sources/` (một file mỗi công cụ: Claude, Codex), `lines.js` (quét dòng bằng Buffer thô, chỉ chuyển thành chuỗi những dòng chứa từ khóa), `scan.js` (tìm file, đọc song song, bỏ trùng), `cache.js` (cache quét tăng dần), `pricing.js` + `data/pricing.toml` (bảng giá), `query.js`, `report.js`, `snapshot.js` (tổng theo ngày), `budget.js`, `render.js`. Tính ra cùng số với aicost (`scripts/ai-parity.js`). |
 | `src/mcp/` | MCP server stdio: `server.js`, `tools.js` (định nghĩa + `callTool`), `processes.js` (`ProcessManager` cho tiến trình nền). |
 | `test/` | `node --test`, mỗi module một file test. |
 | `.ai/skills`, `.claude/skills` | Skill AI dùng lại cho dự án (symlink). |
@@ -221,7 +222,8 @@ Profile của project có thể định nghĩa `lifecycle` và `tasks` (chỉ ac
 | `dev recipes` / `dev openers` (`validate`) | Nạp registry (bỏ qua user dir khi `validate`), kiểm tra schema. |
 | `dev env` / `dev docker` / `dev clone` | Dựng command tương ứng rồi qua `executeCommands`. |
 | `dev update` | `npm install --global @bachbntdev/devcmd@latest` qua `executeCommands`. |
-| `--json` | `runJson` → in JSON ra stdout (lỗi: `{error}` ra stderr). Hỗ trợ: inspect, doctor, projects, history, recipes, openers, devices, config. |
+| `dev ai [today\|week\|month\|report]` | `collectAi` (`src/handlers/ai.js`): `scan` log (qua cache) → `buildReport` → cập nhật `~/.devcmd/ai-daily.json` → tính ngân sách; `handleAi` chỉ hiển thị. `--short`/`--check`/`--format json\|csv` in đúng dữ liệu, không banner (`plain` trong sổ đăng ký). |
+| `--json` | `runJson` → in JSON ra stdout (lỗi: `{error}` ra stderr). Hỗ trợ: inspect, doctor, projects, history, recipes, openers, devices, config, ai. |
 
 ## 7. Luồng MCP server (`dev mcp`)
 
@@ -264,12 +266,13 @@ flowchart LR
 | Flag mới | **Một định nghĩa** trong `src/cli/options.js` (tên, kiểu, `onlyFor`, `help`); parse, kiểm tra, help và completion tự có. |
 | Loại project / lifecycle action mới | `src/projects/detect.js`, `src/projects/adapters/*`, và thêm lệnh vào `src/cli/commands.js` (kind `lifecycle`). |
 | Thiết bị mới | `src/devices/*`, `src/commands/devices.js`, `src/handlers/devices.js`. |
+| Công cụ AI mới cho `dev ai` | Một file trong `src/ai/sources/` (cùng giao diện với `claude.js`), thêm vào `sources/index.js` và `src/ai/constants.js`; fixture bịa ở `test/fixtures/ai/`. |
 | Tool MCP mới | `src/mcp/tools.js` (tái dùng hàm dựng lệnh hiện có). |
 | Recipe/opener riêng của người dùng | `~/.devcmd/recipes/*.json`, `~/.devcmd/openers/*.json` (không cần sửa code). |
 
 ## 10. Dữ liệu trạng thái ngoài repo
 
-Tất cả nằm trong `~/.devcmd/`: `config.json` (mặc định người dùng), `history.json`, `projects.json`, `trusted.json`, `recipes/`, `openers/`.
+Tất cả nằm trong `~/.devcmd/`: `config.json` (mặc định người dùng), `history.json`, `projects.json`, `trusted.json`, `recipes/`, `openers/`, `ai-daily.json` (tổng chi phí AI theo ngày, chỉ số liệu) và `ai-scan-cache.json` (cache quét log, chỉ số liệu và tên ngắn).
 
 ## 11. Build, test, release
 

@@ -12,7 +12,8 @@ const DEFAULT_CONFIG = {
   notify: 0,
 };
 
-const CONFIG_KEYS = [...Object.keys(DEFAULT_CONFIG), 'editor'];
+// Keys without a default: unset until the user sets them.
+const CONFIG_KEYS = [...Object.keys(DEFAULT_CONFIG), 'editor', 'aiBudget'];
 
 function readJson(file, fsImpl = fs) {
   try {
@@ -41,6 +42,9 @@ function validateConfig(config) {
   if (config.notify !== undefined && (!Number.isInteger(config.notify) || config.notify < 0)) {
     throw new Error('notify must be a non-negative integer (seconds).');
   }
+  if (config.aiBudget !== undefined && (!Number.isFinite(config.aiBudget) || config.aiBudget < 0)) {
+    throw new Error('aiBudget must be a non-negative number (USD per month).');
+  }
   return config;
 }
 
@@ -68,6 +72,14 @@ function parseConfigValue(key, value) {
       throw new Error('notify must be a non-negative integer (seconds). Use 0 to disable.');
     }
     return seconds;
+  }
+  if (key === 'aiBudget') {
+    if (value === 'off') return undefined;
+    const usd = Number(value);
+    if (value.trim() === '' || !Number.isFinite(usd) || usd < 0) {
+      throw new Error('aiBudget must be a non-negative number (USD per month). Use off to remove it.');
+    }
+    return usd;
   }
   return value;
 }

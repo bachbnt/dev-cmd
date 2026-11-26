@@ -2,6 +2,7 @@
 
 const { PACKAGE_MANAGERS } = require('../config');
 const { FILTER_COMMANDS, JSON_COMMANDS } = require('../constants');
+const { AI_FORMATS, AI_GROUPS, AI_TOOLS } = require('../ai/constants');
 
 // Every command-line option is declared once here. `parseArgs`, `validateCommandFlags`, the options
 // section of `dev help`, and shell completion are all generated from this list.
@@ -10,6 +11,7 @@ const { FILTER_COMMANDS, JSON_COMMANDS } = require('../constants');
 //   names     accepted spellings; the first is the primary one (used by completion and messages)
 //   kind      'flag' (sets `value`, default true), 'value' (takes one argument), 'assignment' (--set)
 //   default   initial value of `options[key]` (the first definition for a key supplies it)
+//   multiple  a 'value' option that may repeat; `options[key]` becomes an array
 //   valid     predicate for a 'value' argument (default: non-empty and not starting with '-')
 //   invalid   error message when the argument is missing or rejected
 //   onlyFor   commands that may use it; any other command is rejected
@@ -50,6 +52,25 @@ const OPTION_DEFS = [
     key: 'search', names: ['--search'], kind: 'value', default: undefined, invalid: '--search requires text.', onlyFor: ['history'],
     help: { flags: '--search <text>', text: 'Filter history by text (history only)', order: 150 },
   },
+
+  // dev ai
+  { key: 'by', names: ['--by'], kind: 'value', default: undefined, valid: (value) => AI_GROUPS.includes(value), invalid: `--by must be one of: ${AI_GROUPS.join(', ')}`, onlyFor: ['ai'], help: { flags: '--by <group>', text: `Group AI usage by ${AI_GROUPS.join(', ')} (ai only)`, order: 210 } },
+  { key: 'aiTools', names: ['--tool'], kind: 'value', multiple: true, default: undefined, valid: (value) => AI_TOOLS.includes(value), invalid: `--tool must be one of: ${AI_TOOLS.join(', ')}`, onlyFor: ['ai'], help: { flags: '--tool <id>', text: 'Only these AI tools, repeatable (ai only)', order: 211 } },
+  { key: 'models', names: ['--model'], kind: 'value', multiple: true, default: undefined, invalid: '--model requires text.', onlyFor: ['ai'], help: { flags: '--model <text>', text: 'Only models whose name contains the text (ai only)', order: 212 } },
+  { key: 'repos', names: ['--repo'], kind: 'value', multiple: true, default: undefined, invalid: '--repo requires text.', onlyFor: ['ai'], help: { flags: '--repo <text>', text: 'Only projects whose folder name contains the text (ai only)', order: 213 } },
+  { key: 'since', names: ['--since'], kind: 'value', default: undefined, invalid: '--since requires a date (2026-11-01, today, 7d, 2w, 3m).', onlyFor: ['ai'], help: { flags: '--since <date>, --until <date>', text: 'Period for ai report or --history', order: 214 } },
+  { key: 'until', names: ['--until'], kind: 'value', default: undefined, invalid: '--until requires a date (2026-11-01, today, 7d, 2w, 3m).', onlyFor: ['ai'] },
+  { key: 'format', names: ['--format'], kind: 'value', default: undefined, valid: (value) => AI_FORMATS.includes(value), invalid: `--format must be one of: ${AI_FORMATS.join(', ')}`, onlyFor: ['ai'], help: { flags: '--format <table|json|csv>', text: 'Output format (ai only)', order: 215 } },
+  { key: 'check', names: ['--check'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--check', text: 'Exit 1 when over the monthly budget (ai only)', order: 216 } },
+  { key: 'short', names: ['--short'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--short', text: 'One line for a status line (ai only)', order: 217 } },
+  { key: 'history', names: ['--history'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--history', text: 'Show daily totals kept beyond the logs (ai only)', order: 218 } },
+  { key: 'showTools', names: ['--tools'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--tools', text: 'List the AI tools whose logs are read (ai only)', order: 219 } },
+  { key: 'pricing', names: ['--pricing'], kind: 'value', default: undefined, invalid: '--pricing requires a TOML file.', onlyFor: ['ai'], help: { flags: '--pricing <file>', text: 'Extra price file for models (ai only)', order: 220 } },
+  { key: 'claudeDir', names: ['--claude-dir'], kind: 'value', default: undefined, invalid: '--claude-dir requires a folder.', onlyFor: ['ai'], help: { flags: '--claude-dir <dir>, --codex-dir <dir>', text: 'Read logs from another folder (ai only)', order: 221 } },
+  { key: 'codexDir', names: ['--codex-dir'], kind: 'value', default: undefined, invalid: '--codex-dir requires a folder.', onlyFor: ['ai'] },
+  { key: 'noCache', names: ['--no-cache'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--no-cache, --no-snapshot', text: 'Skip the scan cache or the daily history file (ai only)', order: 222 } },
+  { key: 'noSnapshot', names: ['--no-snapshot'], kind: 'flag', default: false, onlyFor: ['ai'] },
+  { key: 'verbose', names: ['--verbose'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--verbose', text: 'Show scan details (ai only)', order: 223 } },
 
   // Scaffold presets: only valid with framework commands.
   { key: 'typescript', names: ['--typescript', '--ts'], kind: 'flag', value: true, default: undefined, preset: true, help: { flags: '--typescript, --javascript', text: 'Select project language', order: 20 } },
@@ -113,7 +134,8 @@ function applyOption(definition, args, options) {
   }
   const value = args.shift();
   if (!isValidValue(definition, value)) throw new Error(definition.invalid);
-  options[definition.key] = value;
+  if (definition.multiple) options[definition.key] = [...(options[definition.key] || []), value];
+  else options[definition.key] = value;
 }
 
 function parseArgs(argv) {

@@ -8,6 +8,7 @@
 //   json     supports --json
 //   filter   supports --filter <workspace>
 //   handler  () => function, resolved on first use; absent for commands main() answers itself
+//   plain    (options) => true when the output must be only the data (no intro banner)
 
 function lazy(modulePath, exportName) {
   return () => require(modulePath)[exportName];
@@ -45,6 +46,11 @@ const COMMANDS = [
   { name: 'completion', kind: 'system', section: 'project', description: 'Generate bash or zsh completion' },
   { name: 'clone', kind: 'system', section: 'tools', description: 'Clone a repository and install dependencies', handler: lazy('../handlers/clone', 'handleClone') },
   { name: 'update', kind: 'system', section: 'tools', description: 'Update DevCmd to the latest version', handler: lazy('../handlers/system', 'handleUpdate') },
+  {
+    name: 'ai', kind: 'system', section: 'tools', description: 'Show what AI coding tools cost: dev ai [today|week|month|report]', json: true,
+    plain: (options) => Boolean(options.short || options.check || options.showTools || ['json', 'csv'].includes(options.format)),
+    handler: lazy('../handlers/ai', 'handleAi'),
+  },
   { name: 'mcp', kind: 'system', section: 'tools', description: 'Start the DevCmd MCP server (stdio transport)', handler: lazy('../handlers/mcp', 'handleMcp') },
   { name: 'devices', kind: 'device', section: 'devices', description: 'List Android and iOS devices', json: true, handler: lazy('../handlers/devices', 'handleDeviceList') },
   { name: 'android', kind: 'device', section: 'devices', description: 'Boot Android emulator', handler: lazy('../handlers/devices', 'handleDeviceCommand') },

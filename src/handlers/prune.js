@@ -10,7 +10,7 @@ const { pruneItems } = require('../disk/prune');
 const { describe, itemTable, sizeText } = require('../disk/render');
 const { scanAll } = require('../disk/scan');
 const { formatBytes } = require('../disk/size');
-const { listTasks, runTask } = require('../maintenance');
+const { listTasks, planClear, runTask } = require('../maintenance');
 const { spawnSyncProcess } = require('../runner/spawn');
 
 // `dev prune`: removes what can be rebuilt, in a way that can be checked and undone.
@@ -276,6 +276,14 @@ async function interactiveMaintenance(context) {
   });
   if (p.isCancel(id)) return;
   const task = tasks.find((candidate) => candidate.id === id);
+  if (task.removeChildrenOf) {
+    const { paths, refused } = planClear(task);
+    if (paths.length === 0) {
+      p.log.info(`Nothing to delete in ${task.removeChildrenOf}${refused.length ? `: ${refused.join('; ')}` : '.'}`);
+      return;
+    }
+    p.note(paths.join('\n'), `${paths.length} item(s) in ${task.removeChildrenOf} would be deleted`);
+  }
   p.note(`${task.does}\n${task.needsAdmin ? 'Needs administrator rights: sudo asks for your password; DevCmd never sees it.' : 'Runs as you.'}`, task.name);
   const sure = await p.confirm({ message: `Run "${task.name}"?`, initialValue: false });
   if (p.isCancel(sure) || !sure) return;

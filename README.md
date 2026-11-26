@@ -336,6 +336,8 @@ dev open
 
 `dev outdated` exits with code 1 under npm when outdated packages exist; that is npm behavior, not a DevCmd failure.
 
+`dev clean` removes generated build directories for the detected project type (for example `dist`, `build`, `coverage`, `.cache`). It never removes a directory that contains files Git tracks: it prints `Skipped <directory>: it contains files tracked by Git.` and leaves it alone. Outside a Git repository, or when Git is unavailable, it behaves as before.
+
 `dev reset` removes the dependency directory (`node_modules` or `.venv`) and reinstalls from scratch. Flutter runs `flutter clean` then `flutter pub get`. iOS runs `xcodebuild clean` then resolves package dependencies.
 
 You can also pass a project path:
@@ -684,8 +686,11 @@ commands/                   macOS double-click launchers
   install-remote.command    Install latest source from GitHub
   release.command           Create a GitHub release interactively
 scripts/                    Shell and Node.js automation scripts
-src/cli.js                  Prompt and command orchestration
-src/constants.js            Shared command name lists
+src/cli.js                  Argument parsing, config loading, and lazy dispatch
+src/cli/                    Command registry, option definitions, and generated help
+src/constants.js            Command name lists derived from the registry
+src/store/                  Atomic JSON and JSON Lines storage
+src/disk/                   Safety checks shared by commands that delete files
 src/commands/               Framework, device, and history commands
 src/config/                 Branding, version, user paths, and defaults
 src/devices/                Android and iOS discovery

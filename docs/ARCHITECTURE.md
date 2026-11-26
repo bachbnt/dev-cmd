@@ -84,10 +84,15 @@ flowchart TD
 | Thư mục | Vai trò |
 | --- | --- |
 | `dev` | Bin: kiểm tra phiên bản Node, gọi `main()` trong `src/cli.js`, set `process.exitCode`. |
-| `src/cli.js` | Parse argv, nạp recipe/opener registry, validate flag, nạp config, `dispatch` tới handler. Cũng chứa `printHelp`. |
+| `src/cli.js` | Parse argv, nạp recipe/opener registry, validate flag, nạp config, `dispatch` tới handler (nạp lười). |
+| `src/cli/commands.js` | **Sổ đăng ký lệnh duy nhất**: tên, nhóm (`kind`, `section`), mô tả, hỗ trợ `--json` hay `--filter`, handler nạp lười. Chỉ chứa dữ liệu. |
+| `src/cli/options.js` | **Định nghĩa flag duy nhất**: sinh `parseArgs`, `validateCommandFlags`, phần Options của `dev help` và completion. |
+| `src/cli/help.js` | Sinh `dev help` từ sổ đăng ký lệnh và định nghĩa flag. |
 | `src/utils/args.js` | `parseArgs`, `validateCommandFlags`, `validateFrameworkOptions`, `validateProjectName`. |
-| `src/constants.js` | Danh sách lệnh: `LIFECYCLE_COMMANDS`, `SYSTEM_COMMANDS`, `DEVICE_COMMANDS`, `FILTER_COMMANDS`, `JSON_COMMANDS`. |
-| `src/config/` | Hằng số đường dẫn `~/.devcmd/*`, `VERSION` (đọc từ `package.json`), `frameworkDefinitions` (sinh từ recipe); `user.js` đọc/ghi config người dùng. |
+| `src/constants.js` | Danh sách lệnh **dẫn xuất** từ `src/cli/commands.js`: `LIFECYCLE_COMMANDS`, `SYSTEM_COMMANDS`, `DEVICE_COMMANDS`, `FILTER_COMMANDS`, `JSON_COMMANDS`. Không liệt kê lệnh ở đây. |
+| `src/store/json-store.js` | Đọc JSON chịu lỗi, ghi JSON **nguyên tử** (file tạm rồi đổi tên), JSON Lines có xoay vòng. History, projects, config, trust dùng nó. |
+| `src/disk/safety.js` | Kiểm tra an toàn dùng chung cho mọi lệnh xóa file: đường dẫn nằm trong root, file Git đang theo dõi. `dev clean` dùng; `dev prune` (theo `docs/PLAN-disk-and-ai.md`) sẽ dùng. |
+| `src/config/` | `paths.js` (`getPaths(homeDir)`, mọi đường dẫn `~/.devcmd/*` và nhận `homeDir` để test), các hằng số cũ dẫn xuất từ đó, `VERSION` (đọc từ `package.json`), `frameworkDefinitions` (sinh từ recipe); `user.js` đọc/ghi config người dùng. |
 | `src/handlers/` | Mỗi lệnh CLI một handler: `scaffold`, `lifecycle`, `workflow` (task/parallel/trust), `system` (doctor/config/recipes/openers/projects/update), `devices`, `history`, `clone`, `tools` (env/docker), `json`, `mcp`. |
 | `src/commands/` | Hàm thuần dựng danh sách lệnh: `frameworks`, `lifecycle`, `inspect`, `devices`, `history`, `env`, `docker`, `completion`. |
 | `src/recipes/` | **Recipe engine**: `loader` (built-in + user), `schema` (validate), `engine` (nội suy → command), `action-runner.js` (mkdir/write/copy chạy như child process). Dữ liệu ở `built-ins.json`. |
@@ -146,7 +151,7 @@ sequenceDiagram
 ```
 
 Điểm cần nhớ khi `dispatch` (`src/cli.js`):
-1. Tra `COMMAND_HANDLERS` (config, doctor, inspect, history, again, task, parallel, trust, env, docker, devices, android, ios, mcp... và toàn bộ `LIFECYCLE_COMMANDS` → `handleLifecycle`).
+1. Tra lệnh trong **sổ đăng ký** (`getCommand` ở `src/cli/commands.js`); nếu có `handler` thì nạp module handler đó lúc này (nạp lười) và chạy. Toàn bộ `LIFECYCLE_COMMANDS` dùng chung `handleLifecycle`.
 2. Nếu tên lệnh là **tên recipe** (react, next, django, flutter...) → `handleScaffold`. Không có nhánh riêng cho từng framework trong CLI.
 3. Ngược lại → báo `Unsupported command`.
 
@@ -255,7 +260,9 @@ flowchart LR
 | --- | --- |
 | Framework scaffold mới | `src/recipes/built-ins.json` (recipe engine tự lo), cập nhật test + README. **Không** thêm nhánh trong handler. |
 | Opener mới cho `dev open` | `src/openers/built-ins.json` (giữ alias `android`, `ios`). |
-| Loại project / lifecycle action mới | `src/projects/detect.js`, `src/projects/adapters/*`, `src/constants.js`. |
+| Lệnh CLI mới | **Một dòng** trong `src/cli/commands.js` (tên, nhóm, mô tả, handler lười); help, completion, `--json` và `--filter` suy ra từ đó. Handler đặt trong `src/handlers/`. |
+| Flag mới | **Một định nghĩa** trong `src/cli/options.js` (tên, kiểu, `onlyFor`, `help`); parse, kiểm tra, help và completion tự có. |
+| Loại project / lifecycle action mới | `src/projects/detect.js`, `src/projects/adapters/*`, và thêm lệnh vào `src/cli/commands.js` (kind `lifecycle`). |
 | Thiết bị mới | `src/devices/*`, `src/commands/devices.js`, `src/handlers/devices.js`. |
 | Tool MCP mới | `src/mcp/tools.js` (tái dùng hàm dựng lệnh hiện có). |
 | Recipe/opener riêng của người dùng | `~/.devcmd/recipes/*.json`, `~/.devcmd/openers/*.json` (không cần sửa code). |

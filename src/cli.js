@@ -73,8 +73,10 @@ async function main(argv) {
       const { runJson } = require('./handlers/json');
       return await runJson({ command, options, positionals, config, recipeRegistry, openerRegistry });
     }
-    const p = await loadPrompts();
-    if (command !== 'mcp') p.intro(`${pc.bgCyan(pc.black(` ${BRAND} `))} ${pc.bold(command)}`);
+    // A command whose output is only data never shows a banner, so it does not need the prompt library.
+    const plain = getCommand(command)?.plain?.(options);
+    const p = plain ? undefined : await loadPrompts();
+    if (p && command !== 'mcp') p.intro(`${pc.bgCyan(pc.black(` ${BRAND} `))} ${pc.bold(command)}`);
     return await dispatch({
       p,
       pc,

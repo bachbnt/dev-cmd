@@ -1,6 +1,6 @@
 # Kế hoạch: `dev disk` / `dev prune` (dọn cả máy dev) và `dev ai`
 
-Trạng thái: **bản nháp 4, chưa triển khai** (2026-11-26). Tài liệu này chốt phạm vi, thiết kế và thứ tự làm. Mọi tên file, hàm, flag lấy từ code hiện tại của repo; chỗ nào chưa kiểm chứng thì ghi rõ "kiểm tra khi làm".
+Trạng thái: **đang triển khai** (cập nhật 2026-11-26). Đã xong: T1, T2, T3, T7, T10, phase 0 (bản 2.8.2); phase 1, phase 2 (cấu hình `aiBudget`, snapshot theo ngày, bảng, `--short`, `--history`) và phase 5 (ngân sách, dự báo, `--check`) cho Claude và Codex (bản 2.9.0). Chưa làm: 15a (khảo sát log Gemini, Copilot, Antigravity), phase 3, 4, 6 trở đi, T4, T5, T6, T8, T9. Tài liệu này chốt phạm vi, thiết kế và thứ tự làm. Mọi tên file, hàm, flag lấy từ code hiện tại của repo; chỗ nào chưa kiểm chứng thì ghi rõ "kiểm tra khi làm".
 
 **Thay đổi so với bản nháp 1:**
 

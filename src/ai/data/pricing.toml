@@ -1,0 +1,176 @@
+# SYNC: this file is a copy of aicost's crates/core/data/pricing.toml (copied 2026-11-26). The
+# prices live in two repositories for now: when one changes, change both and run
+# `node scripts/ai-parity.js`. The matching rules below are identical in both programs.
+#
+# Prices in USD per 1,000,000 tokens. This file is built into aicost; to change or add a model,
+# put the same kind of entry in ~/.config/aicost/pricing.toml (or pass --pricing FILE). An entry
+# of yours replaces the built-in one with the same `match`.
+#
+# `match` is a model name. It matches that name exactly, or that name followed by a date stamp
+# (`claude-sonnet-5-5-20261001`), and ignores a `[1m]` suffix. It never matches a longer
+# version number, so `claude-sonnet-5` does not catch `claude-sonnet-5-6`.
+#
+# A request to a model with no entry is still counted: its tokens show in the report, its cost
+# does not, and the report says which models are missing.
+#
+# These are API prices. If you pay a subscription instead, the totals are what the same usage
+# would cost on the API, not what you are billed.
+#
+# Optional fields: `cache_read`, `cache_write_5m`, `cache_write_1h` (each defaults to `input`),
+# `source` and `note` (free text, not used in the maths).
+
+# --- Anthropic. Prices: the Claude API docs, as cached 2026-11-03. Cache writes are 1.25x the
+# --- input price for the 5 minute cache and 2x for the 1 hour cache; cache reads are 0.1x unless
+# --- the docs name another figure.
+
+[[model]]
+match = "claude-fable-5-2"
+input = 8.00
+output = 40.00
+cache_read = 0.20
+cache_write_5m = 10.00
+cache_write_1h = 16.00
+source = "Claude API docs"
+
+[[model]]
+match = "claude-fable-5-1"
+input = 10.00
+output = 50.00
+cache_read = 0.25
+cache_write_5m = 12.50
+cache_write_1h = 20.00
+source = "Claude API docs"
+
+[[model]]
+match = "claude-opus-5-5"
+input = 4.00
+output = 20.00
+cache_read = 0.20
+cache_write_5m = 5.00
+cache_write_1h = 8.00
+source = "Claude API docs"
+
+[[model]]
+match = "claude-opus-5"
+input = 5.00
+output = 25.00
+cache_read = 0.50
+cache_write_5m = 6.25
+cache_write_1h = 10.00
+source = "Claude API docs"
+
+[[model]]
+match = "claude-opus-4-8"
+input = 5.00
+output = 25.00
+cache_read = 0.50
+cache_write_5m = 6.25
+cache_write_1h = 10.00
+source = "Claude API docs"
+
+[[model]]
+match = "claude-opus-4-7"
+input = 5.00
+output = 25.00
+cache_read = 0.50
+cache_write_5m = 6.25
+cache_write_1h = 10.00
+source = "Claude API docs"
+
+[[model]]
+match = "claude-opus-4-6"
+input = 5.00
+output = 25.00
+cache_read = 0.50
+cache_write_5m = 6.25
+cache_write_1h = 10.00
+source = "Claude API docs"
+
+[[model]]
+match = "claude-sonnet-5-5"
+input = 2.00
+output = 10.00
+cache_read = 0.10
+cache_write_5m = 2.50
+cache_write_1h = 4.00
+source = "Claude API docs"
+
+[[model]]
+match = "claude-sonnet-5"
+input = 2.00
+output = 10.00
+cache_read = 0.20
+cache_write_5m = 2.50
+cache_write_1h = 4.00
+source = "Claude API docs"
+note = "Cache read is the usual 0.1x; the docs only name the Sonnet 5.5 figure."
+
+[[model]]
+match = "claude-sonnet-4-6"
+input = 3.00
+output = 15.00
+cache_read = 0.30
+cache_write_5m = 3.75
+cache_write_1h = 6.00
+source = "Claude API docs"
+
+[[model]]
+match = "claude-haiku-5-5"
+input = 0.10
+output = 0.50
+cache_read = 0.01
+cache_write_5m = 0.125
+cache_write_1h = 0.20
+source = "Claude API docs"
+note = "Price for prompts up to 100K tokens; longer prompts cost more and are not modelled."
+
+[[model]]
+match = "claude-haiku-4-5"
+input = 1.00
+output = 5.00
+cache_read = 0.10
+cache_write_5m = 1.25
+cache_write_1h = 2.00
+source = "Claude API docs"
+
+# --- OpenAI (Codex). Prices: https://developers.openai.com/api/docs/pricing, checked 2026-11-23,
+# --- standard tier, prompts up to 272K tokens. Codex logs have no cache writes.
+
+[[model]]
+match = "gpt-5.6-sol"
+input = 4.00
+output = 20.00
+cache_read = 0.40
+source = "OpenAI pricing page"
+note = "Promotional price, the page says until 2026-11-30."
+
+[[model]]
+match = "gpt-5.6-terra"
+input = 2.00
+output = 12.00
+cache_read = 0.20
+source = "OpenAI pricing page"
+
+[[model]]
+match = "gpt-5.6-luna"
+input = 0.20
+output = 1.20
+cache_read = 0.02
+source = "OpenAI pricing page"
+
+[[model]]
+match = "gpt-5.5"
+input = 5.00
+output = 30.00
+cache_read = 0.50
+source = "OpenAI pricing page"
+
+[[model]]
+match = "gpt-5.3-codex"
+input = 1.75
+output = 14.00
+cache_read = 0.175
+source = "OpenAI pricing page"
+
+# `codex-auto-review` (the model Codex uses to review) is not on the pricing page, so it has no
+# entry and shows as unpriced.

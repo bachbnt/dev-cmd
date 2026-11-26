@@ -1,0 +1,2 @@
+{"type":"assistant","isSidechain":true,"timestamp":"2026-11-02T23:30:00Z","cwd":"/home/u/demo-app","sessionId":"sess-a","requestId":"req_2","message":{"id":"msg_2","model":"claude-haiku-5-5","usage":{"input_tokens":200,"output_tokens":100}}}
+{"type":"assistant","isSidechain":true,"timestamp":"2026-11-03T09:00:00Z","cwd":"/home/u/demo-app","sessionId":"sess-a","requestId":"req_4","message":{"id":"msg_4","model":"claude-sonnet-5-5","usage":{"input_tokens":300,"output_tokens":200}}}

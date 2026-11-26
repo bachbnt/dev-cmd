@@ -12,7 +12,8 @@ const {
 test('parseArgs reads target and project presets', () => {
   const result = parseArgs(['next', 'my-app', '--typescript', '--pnpm', '--no-git', '--eslint']);
   assert.equal(result.command, 'next');
-  assert.deepEqual(result.options, {
+  // Compare only the scaffold-related options, so a new command's flags do not break this test.
+  const expected = {
     dryRun: false,
     coldBoot: false,
     shutdownAll: false,
@@ -34,7 +35,8 @@ test('parseArgs reads target and project presets', () => {
     filter: undefined,
     search: undefined,
     values: {},
-  });
+  };
+  assert.deepEqual(Object.fromEntries(Object.keys(expected).map((key) => [key, result.options[key]])), expected);
   assert.deepEqual(result.positionals, ['my-app']);
 });
 

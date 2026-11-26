@@ -7,6 +7,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
+const { isolatedEnv } = require('./helpers');
+
 const binary = path.join(__dirname, '..', 'dev');
 
 function createNodeProject() {
@@ -25,11 +27,6 @@ function createNodeProject() {
     fs.writeFileSync(path.join(root, `${name}.js`), `console.log("${name}-passed")\n`);
   }
   return root;
-}
-
-function isolatedEnv() {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'devcmd-home-'));
-  return { ...process.env, HOME: home, USERPROFILE: home };
 }
 
 test('binary inspect reports detected project and resolved commands', () => {

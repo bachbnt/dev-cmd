@@ -3,17 +3,14 @@
 const fs = require('fs');
 const path = require('path');
 const { HISTORY_FILE } = require('../config');
+const { readJson, writeJsonAtomic } = require('../store/json-store');
 const { formatSequence, isCommandSequence } = require('../runner/command');
 
 function readHistory(options = {}) {
   const file = options.file || HISTORY_FILE;
   const fsImpl = options.fsImpl || fs;
-  try {
-    const history = JSON.parse(fsImpl.readFileSync(file, 'utf8'));
-    return Array.isArray(history) ? history : [];
-  } catch (error) {
-    return [];
-  }
+  const history = readJson(file, { fsImpl, fallback: [] });
+  return Array.isArray(history) ? history : [];
 }
 
 function saveHistory(entry, options = {}) {
@@ -21,16 +18,16 @@ function saveHistory(entry, options = {}) {
   const fsImpl = options.fsImpl || fs;
   const history = readHistory({ file, fsImpl });
   history.unshift(entry);
-  fsImpl.mkdirSync(path.dirname(file), { recursive: true });
-  fsImpl.writeFileSync(file, `${JSON.stringify(history.slice(0, 50), null, 2)}\n`);
+  writeJsonAtomic(file, history.slice(0, 50), { fsImpl });
 }
 
-function createHistoryEntry(metadata, commands) {
+function createHistoryEntry(metadata, commands, options = {}) {
+  const now = options.now || (() => new Date());
   return {
     ...metadata,
     commands,
     commandLine: formatSequence(commands),
-    executedAt: new Date().toISOString(),
+    executedAt: now().toISOString(),
   };
 }
 

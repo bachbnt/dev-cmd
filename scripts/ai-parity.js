@@ -67,7 +67,8 @@ function main() {
   const dev = path.join(__dirname, '..', 'dev');
   let failed = false;
   for (const group of GROUPS) {
-    const mine = runJson(process.execPath, [dev, 'ai', 'report', '--by', group, '--json', '--dry-run', ...dirs]);
+    // aicost reads Claude Code and Codex only, so compare on those two.
+    const mine = runJson(process.execPath, [dev, 'ai', 'report', '--by', group, '--json', '--dry-run', '--tool', 'claude', '--tool', 'codex', ...dirs]);
     const theirs = runJson(aicost, ['report', '--by', group, '--format', 'json', ...dirs]);
     const differences = compare(mine, theirs);
     console.log(`${group.padEnd(8)} ${differences.length === 0 ? 'IDENTICAL' : 'DIFF'}  (${mine.rows.length} rows, ${mine.total.requests} requests)`);

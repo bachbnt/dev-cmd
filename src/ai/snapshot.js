@@ -36,7 +36,7 @@ function aggregate(usages, prices, query, fromDay) {
     };
     entry.requests += 1;
     addTokens(entry.tokens, usage.tokens);
-    const cost = prices.cost(usage.model, usage.tokens);
+    const cost = prices.costOf(usage);
     if (cost === undefined) entry.priced = false;
     else entry.cost_usd += cost;
   }

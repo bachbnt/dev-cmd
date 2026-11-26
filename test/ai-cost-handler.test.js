@@ -148,8 +148,12 @@ test('--format json and csv print only the data', async () => {
 
 test('--tools lists the sources without reading any log', async () => {
   const result = await collectAi(context(['--tools']));
-  assert.deepEqual(result.data.map((source) => source.tool), ['claude', 'codex']);
-  assert.ok(result.data.every((source) => source.found && source.billing === 'tokens'));
+  assert.deepEqual(result.data.map((source) => source.tool), ['claude', 'codex', 'gemini', 'copilot', 'opencode', 'antigravity']);
+  const byTool = Object.fromEntries(result.data.map((source) => [source.tool, source]));
+  assert.ok(byTool.claude.found && byTool.codex.found && byTool.claude.billing === 'tokens');
+  assert.equal(byTool.copilot.billing, 'reported-cost');
+  assert.equal(byTool.gemini.billing, 'requests-only');
+  assert.equal(byTool.antigravity.maturity, 'not supported');
 });
 
 test('a price file for unknown models changes the report and an invalid one is an error', async () => {

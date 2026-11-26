@@ -42,6 +42,8 @@ function toEntry(raw, label) {
   }
   return {
     name: normalize(raw.match),
+    label: raw.match,
+    source: typeof raw.source === 'string' ? raw.source : undefined,
     price: {
       input: raw.input,
       output: raw.output,
@@ -56,6 +58,7 @@ class PriceTable {
   constructor() {
     this.entries = [];
     this.lookups = new Map();
+    this.updated = undefined;
   }
 
   static fromToml(text, label = 'pricing') {
@@ -73,7 +76,10 @@ class PriceTable {
   }
 
   static builtIn() {
-    return PriceTable.fromToml(fs.readFileSync(BUILT_IN_FILE, 'utf8'), 'built-in pricing');
+    const text = fs.readFileSync(BUILT_IN_FILE, 'utf8');
+    const table = PriceTable.fromToml(text, 'built-in pricing');
+    table.updated = /^# PRICES-UPDATED: (\d{4}-\d{2}-\d{2})$/m.exec(text)?.[1];
+    return table;
   }
 
   mergeFile(file) {
@@ -112,6 +118,12 @@ class PriceTable {
       + tokens.cache_write_5m * price.cache_write_5m
       + tokens.cache_write_1h * price.cache_write_1h
     ) / PER_TOKENS;
+  }
+
+  // The cost of one request: what the tool reported when it reports one (Copilot, OpenCode),
+  // otherwise tokens times the price table. undefined means no price.
+  costOf(usage) {
+    return usage.reportedCost !== undefined ? usage.reportedCost : this.cost(usage.model, usage.tokens);
   }
 
   get size() {

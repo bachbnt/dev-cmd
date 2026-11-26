@@ -70,6 +70,15 @@ const OPTION_DEFS = [
   { key: 'codexDir', names: ['--codex-dir'], kind: 'value', default: undefined, invalid: '--codex-dir requires a folder.', onlyFor: ['ai'] },
   { key: 'noCache', names: ['--no-cache'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--no-cache, --no-snapshot', text: 'Skip the scan cache or the daily history file (ai only)', order: 222 } },
   { key: 'noSnapshot', names: ['--no-snapshot'], kind: 'flag', default: false, onlyFor: ['ai'] },
+  { key: 'efficiency', names: ['--efficiency'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--efficiency, --sessions <n>', text: 'Cache ratio and model mix; the n most expensive sessions (ai only)', order: 224 } },
+  { key: 'sessions', names: ['--sessions'], kind: 'value', default: undefined, valid: (value) => /^[1-9]\d*$/.test(value || ''), invalid: '--sessions requires a number of sessions.', onlyFor: ['ai'] },
+  { key: 'showPrices', names: ['--prices'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--prices', text: 'Show the price table and when it was checked (ai only)', order: 225 } },
+  { key: 'statuslineConfig', names: ['--print-statusline-config'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--print-statusline-config', text: 'Print a Claude Code status line setting that runs ai --short (ai only)', order: 226 } },
+  { key: 'here', names: ['--here'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--here', text: 'Only the project in the current folder (ai only)', order: 227 } },
+  { key: 'pr', names: ['--pr'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--pr', text: 'With --by branch, look up pull requests with gh (uses the network)', order: 228 } },
+  { key: 'machines', names: ['--machines'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--machines', text: 'List the computers whose history is imported (ai only)', order: 229 } },
+  { key: 'exportSnapshot', names: ['--export-snapshot'], kind: 'value', default: undefined, invalid: '--export-snapshot requires a file (use - for the screen).', valid: (value) => Boolean(value) && (value === '-' || !value.startsWith('-')), onlyFor: ['ai'], help: { flags: '--export-snapshot <file>, --import-snapshot <file>', text: 'Move daily totals between computers (ai only)', order: 229.5 } },
+  { key: 'importSnapshot', names: ['--import-snapshot'], kind: 'value', default: undefined, invalid: '--import-snapshot requires a file.', onlyFor: ['ai'] },
   { key: 'verbose', names: ['--verbose'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--verbose', text: 'Show scan details (ai only)', order: 223 } },
 
   // dev disk and dev prune

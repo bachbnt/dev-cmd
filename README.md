@@ -637,7 +637,7 @@ Add your own tool caches in `~/.devcmd/cleaners/*.json` (same fields as the buil
 
 ## AI Cost
 
-`dev ai` adds up what the AI coding tools on this computer cost, from the logs they already keep. Claude Code (`~/.claude/projects`) and Codex (`~/.codex/sessions`) are supported. Nothing is sent anywhere and no log content is stored.
+`dev ai` adds up what the AI coding tools on this computer cost, from the logs they already keep. Claude Code (`~/.claude/projects`), Codex (`~/.codex/sessions`), OpenCode, GitHub Copilot CLI and Gemini CLI are read; see `dev ai --tools` for what is found on your computer and how reliable each source is. Nothing is sent anywhere and no log content is stored.
 
 ```bash
 dev ai                          # this month, day by day
@@ -653,6 +653,34 @@ dev ai --tools                  # which tools are read, and whether their logs w
 
 The cost is what the same usage would cost at API prices. On a subscription plan it measures how much you use, not what you are billed. A model without a price shows its tokens and `n/a` or a `*` on the cost, never zero; prices come from `src/ai/data/pricing.toml`. Add or override a model in `~/.config/aicost/pricing.toml` or with `--pricing <file>` (same file format as [aicost](https://github.com/bachbnt/aicost)).
 
+### More views
+
+```bash
+dev ai --by branch               # cost per Git branch (Claude Code logs the branch)
+dev ai --by branch --pr          # plus the pull request of each branch, through gh (network)
+dev ai clients add Acme ~/work/acme   # name the folders you bill to a client
+dev ai --by client               # cost per client
+dev ai --sessions 10             # the 10 most expensive sessions
+dev ai --efficiency              # cache hit ratio, cost per model, sub-agent share, plan vs API price
+dev ai --here                    # only the project in the current folder
+dev ai --format md               # also: html (one self-contained page), openmetrics, csv, json
+dev ai --prices                  # the price table and when it was last checked
+dev ai --print-statusline-config # a Claude Code status line setting that runs dev ai --short
+```
+
+`dev ai --efficiency` compares `aiPlan` (`dev config set aiPlan 20`) with what the same usage costs at API prices. A warning appears when today costs more than `aiAnomalyFactor` (default 3) times your usual day and at least `aiAnomalyMinUsd` (default 5), and when the price table is older than `aiPriceStaleDays` (default 90). Client names live only in your config and the local scan cache: they are never written to the daily history or sent through MCP.
+
+Copilot CLI and OpenCode report their own cost, and DevCmd shows that figure; Gemini CLI logs of the version surveyed hold no model replies or token counts, so it shows few or no requests. Antigravity keeps no usage numbers locally and is not supported. Details and the evidence for each source are in `docs/AI-SOURCES.md`. Copilot and OpenCode are read from SQLite through `node:sqlite` (Node 22.5 and newer) or the `sqlite3` command.
+
+### Several computers
+
+```bash
+dev ai --export-snapshot laptop.json   # daily totals only: numbers, no paths or names
+dev ai --import-snapshot laptop.json   # on another computer
+dev ai --history                       # now sums both
+dev ai --machines                      # which computers are included
+```
+
 ### Budget
 
 ```bash
@@ -662,7 +690,7 @@ dev ai --check                  # exit 1 over budget, 0 under it, 2 when no budg
 dev ai --short                  # one line for a status line: "$13.93 today · $1,173.40 this month (587% of $200.00)"
 ```
 
-The budget counts this month across every tool and project, whatever filters you pass. The month-end figure is a straight-line estimate from the pace so far, not a promise.
+The budget counts this month across every tool and project, whatever filters you pass. The MCP server has a read-only `ai_cost` tool that returns totals by day, week, month, model or tool (never by project, session, branch or client). The month-end figure is a straight-line estimate from the pace so far, not a promise.
 
 ### History
 
@@ -768,6 +796,9 @@ History entries store executables and argument arrays instead of shell command s
 --pricing <file>            (ai only) Extra price file
 --claude-dir <dir>, --codex-dir <dir>   (ai only) Read logs from another folder
 --no-cache, --no-snapshot, --verbose    (ai only)
+--efficiency, --sessions <n>, --prices, --here, --pr, --machines   (ai only)
+--print-statusline-config   (ai only)
+--export-snapshot <file>, --import-snapshot <file>   (ai only)
 --older-than <days>         (disk, prune) Only projects not touched for this long
 --root <path>               (disk, prune, repeatable) Folder to search for projects
 --only <id|path>            (prune, repeatable) Clean only these items
@@ -967,6 +998,7 @@ Claude Code can add it with `claude mcp add devcmd -- npx -y @bachbntdev/devcmd 
 | `list_devices` | Android emulators and iOS simulators. |
 | `boot_device` | Boot an Android emulator (background process) or an iOS simulator. |
 | `get_history` | Recent successful commands, filterable by `project` and `search`. |
+| `ai_cost` | Read-only totals of what AI coding tools cost, by `period` (today, week, month) and `group_by` (day, week, month, model, tool). Returns no project, session, branch or client names. Nothing is written. |
 
 Failed commands are returned with `isError: true` so agents can react to them. Profile commands from `.devcmd.json` are refused until you run `dev trust` yourself; the MCP server has no tool for approving a profile.
 

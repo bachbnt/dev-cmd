@@ -34,7 +34,7 @@ function buildReport(usages, prices, query, scan = emptyScan()) {
   for (const usage of usages) {
     const day = dayOf(query, usage);
     if (!matches(query, usage, day)) continue;
-    const cost = prices.cost(usage.model, usage.tokens);
+    const cost = prices.costOf(usage);
     const key = groupKey(query, usage, day);
     if (!rows.has(key)) rows.set(key, newRow(key));
     addToRow(rows.get(key), usage, cost);

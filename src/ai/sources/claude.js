@@ -67,6 +67,9 @@ function readLine(text) {
     model,
     session: sessionId ?? '',
     project: projectName(cwd),
+    cwd: cwd ?? '',
+    branch: optionalString(line.gitBranch) ?? '',
+    sidechain: line.isSidechain === true,
     at,
     tokens,
   };
@@ -81,7 +84,7 @@ module.exports = {
   isLog: (file) => file.endsWith('.jsonl'),
   needles: ['"usage"'],
   // Bump when the way a line is read changes: cached results from older readers are dropped.
-  version: 1,
+  version: 2,
   initState: () => ({}),
   onLine(text, _state, out) {
     try {

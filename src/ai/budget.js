@@ -12,7 +12,7 @@ function monthSpend(usages, prices, { today, offsetMinutes }) {
   for (const usage of usages) {
     const day = dayOf({ offsetMinutes }, usage);
     if (day < monthStart || day > today) continue;
-    const cost = prices.cost(usage.model, usage.tokens);
+    const cost = prices.costOf(usage);
     if (cost === undefined) {
       result.unpriced = true;
       continue;

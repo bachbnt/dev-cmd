@@ -1,0 +1,138 @@
+{
+  "cleaners": [
+    {
+      "id": "npm", "name": "npm cache", "category": "dev-cache", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "executable": "npm" },
+      "measure": { "darwin": ["{home}/.npm"], "linux": ["{home}/.npm"], "win32": ["{localappdata}/npm-cache"] },
+      "clean": { "executable": "npm", "args": ["cache", "clean", "--force"] },
+      "recreate": "Packages download again on the next install.", "tier": "safe"
+    },
+    {
+      "id": "pnpm", "name": "pnpm store", "category": "dev-cache", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "executable": "pnpm" },
+      "measure": { "darwin": ["{home}/Library/pnpm/store"], "linux": ["{home}/.local/share/pnpm/store"], "win32": ["{localappdata}/pnpm/store"] },
+      "clean": { "executable": "pnpm", "args": ["store", "prune"] },
+      "recreate": "Unreferenced packages download again when a project needs them.", "tier": "safe"
+    },
+    {
+      "id": "yarn", "name": "Yarn cache", "category": "dev-cache", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "executable": "yarn" },
+      "measure": { "darwin": ["{home}/Library/Caches/Yarn"], "linux": ["{home}/.cache/yarn"], "win32": ["{localappdata}/Yarn/Cache"] },
+      "clean": { "executable": "yarn", "args": ["cache", "clean"] },
+      "recreate": "Packages download again on the next install.", "tier": "safe"
+    },
+    {
+      "id": "bun", "name": "Bun cache", "category": "dev-cache", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "executable": "bun" },
+      "measure": { "darwin": ["{home}/.bun/install/cache"], "linux": ["{home}/.bun/install/cache"], "win32": ["{home}/.bun/install/cache"] },
+      "clean": { "executable": "bun", "args": ["pm", "cache", "rm"] },
+      "recreate": "Packages download again on the next install.", "tier": "safe"
+    },
+    {
+      "id": "pip", "name": "pip cache", "category": "dev-cache", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "executable": "pip" },
+      "measure": { "darwin": ["{home}/Library/Caches/pip"], "linux": ["{home}/.cache/pip"], "win32": ["{localappdata}/pip/Cache"] },
+      "clean": { "executable": "pip", "args": ["cache", "purge"] },
+      "recreate": "Wheels download or build again on the next install.", "tier": "safe"
+    },
+    {
+      "id": "conda", "name": "conda packages and caches", "category": "dev-cache", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "executable": "conda" },
+      "measure": { "darwin": ["{home}/.conda/pkgs"], "linux": ["{home}/.conda/pkgs"], "win32": ["{home}/.conda/pkgs"] },
+      "clean": { "executable": "conda", "args": ["clean", "--all", "--yes"] },
+      "recreate": "Packages download again when an environment needs them.", "tier": "review"
+    },
+    {
+      "id": "go-build", "name": "Go build cache", "category": "dev-cache", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "executable": "go" },
+      "measure": { "darwin": ["{home}/Library/Caches/go-build"], "linux": ["{home}/.cache/go-build"], "win32": ["{localappdata}/go-build"] },
+      "clean": { "executable": "go", "args": ["clean", "-cache"] },
+      "recreate": "The next build is slower while the cache fills again.", "tier": "safe"
+    },
+    {
+      "id": "go-mod", "name": "Go module cache", "category": "dev-cache", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "executable": "go" },
+      "measure": { "darwin": ["{home}/go/pkg/mod"], "linux": ["{home}/go/pkg/mod"], "win32": ["{home}/go/pkg/mod"] },
+      "clean": { "executable": "go", "args": ["clean", "-modcache"] },
+      "recreate": "Modules download again on the next build (needs network).", "tier": "review"
+    },
+    {
+      "id": "dart-pub", "name": "Dart/Flutter pub cache", "category": "dev-cache", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "executable": "dart" },
+      "measure": { "darwin": ["{home}/.pub-cache"], "linux": ["{home}/.pub-cache"], "win32": ["{localappdata}/Pub/Cache"] },
+      "clean": { "executable": "dart", "args": ["pub", "cache", "clean", "--force"] },
+      "recreate": "Run flutter pub get in each project (needs network).", "tier": "review"
+    },
+    {
+      "id": "homebrew", "name": "Homebrew downloads and old versions", "category": "dev-cache", "platforms": ["darwin", "linux"],
+      "detect": { "executable": "brew" },
+      "measure": { "darwin": ["{home}/Library/Caches/Homebrew"], "linux": ["{home}/.cache/Homebrew"] },
+      "clean": { "executable": "brew", "args": ["cleanup"] },
+      "recreate": "Bottles download again when needed.", "tier": "safe"
+    },
+    {
+      "id": "cocoapods", "name": "CocoaPods cache", "category": "dev-cache", "platforms": ["darwin"],
+      "detect": { "executable": "pod" },
+      "measure": { "darwin": ["{home}/Library/Caches/CocoaPods"] },
+      "clean": { "executable": "pod", "args": ["cache", "clean", "--all"] },
+      "recreate": "Pods download again on the next pod install.", "tier": "safe"
+    },
+    {
+      "id": "xcode-derived-data", "name": "Xcode DerivedData", "category": "dev-cache", "platforms": ["darwin"],
+      "detect": { "paths": ["{home}/Library/Developer/Xcode/DerivedData"] },
+      "measure": { "darwin": ["{home}/Library/Developer/Xcode/DerivedData"] },
+      "clean": { "paths": ["{home}/Library/Developer/Xcode/DerivedData"] },
+      "recreate": "Xcode rebuilds it; the next build is slower.", "tier": "safe"
+    },
+    {
+      "id": "simulator-unavailable", "name": "Unavailable iOS simulators", "category": "dev-cache", "platforms": ["darwin"],
+      "detect": { "executable": "xcrun" },
+      "measure": { "darwin": [] },
+      "clean": { "executable": "xcrun", "args": ["simctl", "delete", "unavailable"] },
+      "recreate": "Only simulators whose runtime is gone are removed.", "tier": "safe"
+    },
+    {
+      "id": "docker-builder", "name": "Docker build cache", "category": "dev-cache", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "executable": "docker" },
+      "measure": { "darwin": [], "linux": [], "win32": [] },
+      "clean": { "executable": "docker", "args": ["builder", "prune", "--force"] },
+      "recreate": "Image builds are slower until the cache fills again.", "tier": "review"
+    },
+    {
+      "id": "cargo-registry", "name": "Cargo registry and git checkouts", "category": "info", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "paths": ["{home}/.cargo/registry"] },
+      "measure": { "darwin": ["{home}/.cargo/registry", "{home}/.cargo/git"], "linux": ["{home}/.cargo/registry", "{home}/.cargo/git"], "win32": ["{home}/.cargo/registry", "{home}/.cargo/git"] },
+      "recreate": "Shown only: Cargo has no official cleanup command.", "tier": "blocked"
+    },
+    {
+      "id": "gradle-caches", "name": "Gradle caches", "category": "info", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "paths": ["{home}/.gradle/caches"] },
+      "measure": { "darwin": ["{home}/.gradle/caches"], "linux": ["{home}/.gradle/caches"], "win32": ["{home}/.gradle/caches"] },
+      "recreate": "Shown only: Gradle has no official cleanup command.", "tier": "blocked"
+    },
+    {
+      "id": "maven-repository", "name": "Maven local repository", "category": "info", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "paths": ["{home}/.m2/repository"] },
+      "measure": { "darwin": ["{home}/.m2/repository"], "linux": ["{home}/.m2/repository"], "win32": ["{home}/.m2/repository"] },
+      "recreate": "Shown only: Maven has no official cleanup command.", "tier": "blocked"
+    },
+    {
+      "id": "ai-claude", "name": "Claude Code history", "category": "info", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "paths": ["{home}/.claude"] },
+      "measure": { "darwin": ["{home}/.claude"], "linux": ["{home}/.claude"], "win32": ["{home}/.claude"] },
+      "recreate": "Shown only: these are your conversations and settings.", "tier": "blocked"
+    },
+    {
+      "id": "ai-codex", "name": "Codex history", "category": "info", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "paths": ["{home}/.codex"] },
+      "measure": { "darwin": ["{home}/.codex"], "linux": ["{home}/.codex"], "win32": ["{home}/.codex"] },
+      "recreate": "Shown only: these are your conversations and settings.", "tier": "blocked"
+    },
+    {
+      "id": "ai-models", "name": "Ollama and Hugging Face models", "category": "info", "platforms": ["darwin", "linux", "win32"],
+      "detect": { "paths": ["{home}/.ollama", "{home}/.cache/huggingface"] },
+      "measure": { "darwin": ["{home}/.ollama", "{home}/.cache/huggingface"], "linux": ["{home}/.ollama", "{home}/.cache/huggingface"], "win32": ["{home}/.ollama", "{home}/.cache/huggingface"] },
+      "recreate": "Shown only: models are large downloads you chose to keep.", "tier": "blocked"
+    }
+  ]
+}

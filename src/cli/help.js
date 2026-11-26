@@ -52,8 +52,11 @@ function printHelp(pc, definitions = frameworkDefinitions, openerRegistry) {
   }
 
   console.log(`\n${pc.bold('Options:')}`);
-  for (const { flags, text } of helpOptions()) {
-    console.log(`  ${flags.padEnd(31)} ${pc.dim(text)}`);
+  const options = helpOptions();
+  // Wide enough for the longest flag, so a new option can never push its text out of line.
+  const width = Math.max(31, ...options.map(({ flags }) => flags.length));
+  for (const { flags, text } of options) {
+    console.log(`  ${flags.padEnd(width)} ${pc.dim(text)}`);
   }
   console.log('');
 }

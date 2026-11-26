@@ -9,6 +9,8 @@ const { ARTIFACTS } = require('./catalog');
 const {
   isGitIgnored, isTracked, lastCommitAgeDays, listTrackedFiles,
 } = require('./safety');
+const { scanBrowsers } = require('./browsers');
+const { scanSimulatorRuntimes } = require('./simruntimes');
 const { measure } = require('./size');
 
 // Finds what could be freed. Everything here only reads; deleting lives in `prune.js`.
@@ -172,11 +174,13 @@ async function scanAll(options = {}) {
   } = options;
   const recent = getExistingProjects(recentFile ? { file: recentFile } : {}).map((project) => project.path);
   const projectRoots = [...new Set([...discoverProjects(roots, { fsImpl }), ...(roots.length > 0 ? [] : recent)])];
-  const [projects, globals] = await Promise.all([
+  const [projects, globals, browsers] = await Promise.all([
     scanProjects(projectRoots, { ...options, olderThanDays, now }),
     scanGlobal({ ...options, homeDir }),
+    scanBrowsers({ ...options, homeDir }),
   ]);
-  const items = [...projects, ...globals].sort((left, right) => right.bytes - left.bytes);
+  const runtimes = scanSimulatorRuntimes({ spawnSync: options.spawnSync, platform: options.platform });
+  const items = [...projects, ...globals, ...runtimes, ...browsers].sort((left, right) => right.bytes - left.bytes);
   const reclaimable = items.filter((item) => item.tier === 'safe').reduce((sum, item) => sum + item.bytes, 0);
   return {
     scannedAt: new Date(now).toISOString(),

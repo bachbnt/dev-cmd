@@ -74,3 +74,17 @@ jobs:
         run: |
           dev fastapi smoke-api --no-install --no-git
           dev inspect smoke-api --json
+
+  macos-e2e:
+    # The macOS runner is a real macOS virtual machine, so the cleaning features run here for real:
+    # plutil, the Trash, xcrun, and sudo (passwordless on the runner). See scripts/macos-e2e.js.
+    name: macOS cleaning end to end
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - run: node scripts/macos-e2e.js

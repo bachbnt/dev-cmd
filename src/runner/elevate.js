@@ -1,7 +1,8 @@
 // Copyright (c) 2026 bachbnt
 
 const fs = require('fs');
-const path = require('path');
+// Elevation exists on macOS and Linux only, so paths here are always POSIX paths.
+const path = require('path').posix;
 const { protectedReason } = require('../disk/safety');
 const { spawnSyncProcess } = require('./spawn');
 

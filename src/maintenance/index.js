@@ -52,7 +52,7 @@ function planClear(task, { fsImpl = fs, homeDir, platform = process.platform, no
   } catch {}
   const eligible = [];
   for (const name of names) {
-    const full = path.join(task.removeChildrenOf, name);
+    const full = path.posix.join(task.removeChildrenOf, name);
     let stat;
     try {
       stat = fsImpl.lstatSync(full);

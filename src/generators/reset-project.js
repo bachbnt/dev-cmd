@@ -3,14 +3,11 @@
 
 const fs = require('fs');
 const path = require('path');
+const { resetTarget } = require('../disk/catalog');
 
 const root = path.resolve(process.argv[2] || '.');
 const type = process.argv[3] || 'unknown';
 
-const PYTHON_TYPES = new Set(['python', 'django', 'fastapi', 'flask']);
-
-const target = PYTHON_TYPES.has(type)
-  ? path.join(root, '.venv')
-  : path.join(root, 'node_modules');
+const target = path.join(root, resetTarget(type));
 
 fs.rmSync(target, { recursive: true, force: true });

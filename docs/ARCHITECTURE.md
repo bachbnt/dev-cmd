@@ -91,7 +91,10 @@ flowchart TD
 | `src/utils/args.js` | `parseArgs`, `validateCommandFlags`, `validateFrameworkOptions`, `validateProjectName`. |
 | `src/constants.js` | Danh sách lệnh **dẫn xuất** từ `src/cli/commands.js`: `LIFECYCLE_COMMANDS`, `SYSTEM_COMMANDS`, `DEVICE_COMMANDS`, `FILTER_COMMANDS`, `JSON_COMMANDS`. Không liệt kê lệnh ở đây. |
 | `src/store/json-store.js` | Đọc JSON chịu lỗi, ghi JSON **nguyên tử** (file tạm rồi đổi tên), JSON Lines có xoay vòng. History, projects, config, trust dùng nó. |
-| `src/disk/safety.js` | Kiểm tra an toàn dùng chung cho mọi lệnh xóa file: đường dẫn nằm trong root, file Git đang theo dõi. `dev clean` dùng; `dev prune` (theo `docs/PLAN-disk-and-ai.md`) sẽ dùng. |
+| `src/disk/` | **Dung lượng và dọn dẹp.** `safety.js` (danh sách cấm theo realpath, `assertRemovable`, kiểm tra Git: tracked/ignored/tuổi commit), `catalog.js` (danh mục artifact dùng chung cho `clean`, `reset`, `disk`, `prune`), `size.js` (đo dung lượng không dùng `du`, không theo symlink, loại trùng hardlink), `scan.js` (quét project qua bốn cổng và cache toàn cục), `prune.js` (**nơi duy nhất xóa**: kiểm tra lại → Thùng rác hoặc lệnh của công cụ → nhật ký), `trash.js`, `audit.js` (`~/.devcmd/prune-log.jsonl`, chỉ trên máy), `appcaches.js`, `tools.js`, `trend.js`, `render.js`. |
+| `src/cleaners/` | Danh mục cache toàn cục khai báo bằng JSON (`built-ins.json` + `~/.devcmd/cleaners/*.json`), `schema.js` cấm shell và cấm quyền admin cho cleaner của người dùng. |
+| `src/apps/`, `src/maintenance/` | Gỡ app macOS (liệt kê, bundle id qua `plutil`, tìm file còn sót, cask Homebrew) và danh mục bảo trì tối thiểu. |
+| `src/runner/elevate.js` | **Cổng nâng quyền duy nhất**: `sudo -k --`, `stdio: inherit`, không bao giờ nhận mật khẩu, cần TTY, cần xác nhận riêng, xóa bằng root chỉ qua `/bin/rm` với realpath và thư mục cha thuộc root. |
 | `src/config/` | `paths.js` (`getPaths(homeDir)`, mọi đường dẫn `~/.devcmd/*` và nhận `homeDir` để test), các hằng số cũ dẫn xuất từ đó, `VERSION` (đọc từ `package.json`), `frameworkDefinitions` (sinh từ recipe); `user.js` đọc/ghi config người dùng. |
 | `src/handlers/` | Mỗi lệnh CLI một handler: `scaffold`, `lifecycle`, `workflow` (task/parallel/trust), `system` (doctor/config/recipes/openers/projects/update), `devices`, `history`, `clone`, `tools` (env/docker), `json`, `mcp`. |
 | `src/commands/` | Hàm thuần dựng danh sách lệnh: `frameworks`, `lifecycle`, `inspect`, `devices`, `history`, `env`, `docker`, `completion`. |
@@ -222,6 +225,7 @@ Profile của project có thể định nghĩa `lifecycle` và `tasks` (chỉ ac
 | `dev recipes` / `dev openers` (`validate`) | Nạp registry (bỏ qua user dir khi `validate`), kiểm tra schema. |
 | `dev env` / `dev docker` / `dev clone` | Dựng command tương ứng rồi qua `executeCommands`. |
 | `dev update` | `npm install --global @bachbntdev/devcmd@latest` qua `executeCommands`. |
+| `dev disk` / `dev prune` | `collectDisk` / `collectPrune` (`src/handlers/`) thu thập, handler hiển thị. `prune` mặc định chỉ liệt kê; xóa cần chọn rõ (menu, hoặc `--yes` với `--only`/`--all-safe`); không ghi `history` nên `dev again` không lặp lại được việc xóa. |
 | `dev ai [today\|week\|month\|report]` | `collectAi` (`src/handlers/ai.js`): `scan` log (qua cache) → `buildReport` → cập nhật `~/.devcmd/ai-daily.json` → tính ngân sách; `handleAi` chỉ hiển thị. `--short`/`--check`/`--format json\|csv` in đúng dữ liệu, không banner (`plain` trong sổ đăng ký). |
 | `--json` | `runJson` → in JSON ra stdout (lỗi: `{error}` ra stderr). Hỗ trợ: inspect, doctor, projects, history, recipes, openers, devices, config, ai. |
 
@@ -272,7 +276,7 @@ flowchart LR
 
 ## 10. Dữ liệu trạng thái ngoài repo
 
-Tất cả nằm trong `~/.devcmd/`: `config.json` (mặc định người dùng), `history.json`, `projects.json`, `trusted.json`, `recipes/`, `openers/`, `ai-daily.json` (tổng chi phí AI theo ngày, chỉ số liệu) và `ai-scan-cache.json` (cache quét log, chỉ số liệu và tên ngắn).
+Tất cả nằm trong `~/.devcmd/`: `config.json` (mặc định người dùng), `history.json`, `projects.json`, `trusted.json`, `recipes/`, `openers/`, `ai-daily.json` (tổng chi phí AI theo ngày, chỉ số liệu), `ai-scan-cache.json` (cache quét log, chỉ số liệu và tên ngắn), `prune-log.jsonl` (nhật ký xóa, chỉ trên máy, xoay vòng 5 MB), `disk-daily.json` (tổng dung lượng theo nhóm, không có đường dẫn), `cleaners/`.
 
 ## 11. Build, test, release
 

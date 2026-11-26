@@ -41,7 +41,7 @@ const OPTION_DEFS = [
   },
   { key: 'json', names: ['--json'], kind: 'flag', default: false, onlyFor: JSON_COMMANDS, help: { flags: '--json', text: 'Print machine-readable JSON (inspect, doctor, ...)', order: 140 } },
   { key: 'fix', names: ['--fix'], kind: 'flag', default: false, onlyFor: ['lint'], help: { flags: '--fix', text: 'Apply automatic fixes (lint only)', order: 130 } },
-  { key: 'yes', names: ['--yes', '-y'], kind: 'flag', default: false, onlyFor: ['trust'], help: { flags: '--yes, -y', text: 'Skip confirmation (trust only)', order: 160 } },
+  { key: 'yes', names: ['--yes', '-y'], kind: 'flag', default: false, onlyFor: ['trust', 'prune'], help: { flags: '--yes, -y', text: 'Skip confirmation (trust, prune)', order: 160 } },
   {
     key: 'filter', names: ['--filter'], kind: 'value', default: undefined,
     valid: (value) => Boolean(value) && FILTER_PATTERN.test(value) && !value.includes('..'),
@@ -61,7 +61,7 @@ const OPTION_DEFS = [
   { key: 'since', names: ['--since'], kind: 'value', default: undefined, invalid: '--since requires a date (2026-11-01, today, 7d, 2w, 3m).', onlyFor: ['ai'], help: { flags: '--since <date>, --until <date>', text: 'Period for ai report or --history', order: 214 } },
   { key: 'until', names: ['--until'], kind: 'value', default: undefined, invalid: '--until requires a date (2026-11-01, today, 7d, 2w, 3m).', onlyFor: ['ai'] },
   { key: 'format', names: ['--format'], kind: 'value', default: undefined, valid: (value) => AI_FORMATS.includes(value), invalid: `--format must be one of: ${AI_FORMATS.join(', ')}`, onlyFor: ['ai'], help: { flags: '--format <table|json|csv>', text: 'Output format (ai only)', order: 215 } },
-  { key: 'check', names: ['--check'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--check', text: 'Exit 1 when over the monthly budget (ai only)', order: 216 } },
+  { key: 'check', names: ['--check'], kind: 'flag', default: false, onlyFor: ['ai', 'disk'], help: { flags: '--check', text: 'Exit 1 when over the budget (ai) or the threshold (disk)', order: 216 } },
   { key: 'short', names: ['--short'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--short', text: 'One line for a status line (ai only)', order: 217 } },
   { key: 'history', names: ['--history'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--history', text: 'Show daily totals kept beyond the logs (ai only)', order: 218 } },
   { key: 'showTools', names: ['--tools'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--tools', text: 'List the AI tools whose logs are read (ai only)', order: 219 } },
@@ -71,6 +71,18 @@ const OPTION_DEFS = [
   { key: 'noCache', names: ['--no-cache'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--no-cache, --no-snapshot', text: 'Skip the scan cache or the daily history file (ai only)', order: 222 } },
   { key: 'noSnapshot', names: ['--no-snapshot'], kind: 'flag', default: false, onlyFor: ['ai'] },
   { key: 'verbose', names: ['--verbose'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--verbose', text: 'Show scan details (ai only)', order: 223 } },
+
+  // dev disk and dev prune
+  { key: 'olderThan', names: ['--older-than'], kind: 'value', default: undefined, valid: (value) => /^\d+$/.test(value || ''), invalid: '--older-than requires a number of days.', onlyFor: ['disk', 'prune'], help: { flags: '--older-than <days>', text: 'Only projects not touched for this long (default 30)', order: 230 } },
+  { key: 'roots', names: ['--root'], kind: 'value', multiple: true, default: undefined, invalid: '--root requires a folder.', onlyFor: ['disk', 'prune'], help: { flags: '--root <path>', text: 'Folder to search for projects, repeatable', order: 231 } },
+  { key: 'only', names: ['--only'], kind: 'value', multiple: true, default: undefined, invalid: '--only requires an item id or path.', onlyFor: ['prune'], help: { flags: '--only <id|path>', text: 'Clean only these items, repeatable (prune)', order: 232 } },
+  { key: 'allSafe', names: ['--all-safe'], kind: 'flag', default: false, onlyFor: ['prune'], help: { flags: '--all-safe', text: 'Select every safe item; needs --yes (prune)', order: 233 } },
+  { key: 'log', names: ['--log'], kind: 'flag', default: false, onlyFor: ['prune'], help: { flags: '--log', text: 'Show the deletion log (prune)', order: 234 } },
+  { key: 'top', names: ['--top'], kind: 'flag', default: false, onlyFor: ['disk'], help: { flags: '--top, --large, --trend', text: 'Drill into folders, list big files, or show the trend (disk)', order: 235 } },
+  { key: 'large', names: ['--large'], kind: 'flag', default: false, onlyFor: ['disk'] },
+  { key: 'trend', names: ['--trend'], kind: 'flag', default: false, onlyFor: ['disk'] },
+  { key: 'minSize', names: ['--min-size'], kind: 'value', default: undefined, invalid: '--min-size requires a size such as 500MB.', onlyFor: ['disk'], help: { flags: '--min-size <size>, --threshold <size>', text: 'Big-file limit, or the size that fails --check (disk)', order: 236 } },
+  { key: 'threshold', names: ['--threshold'], kind: 'value', default: undefined, invalid: '--threshold requires a size such as 50GB.', onlyFor: ['disk'] },
 
   // Scaffold presets: only valid with framework commands.
   { key: 'typescript', names: ['--typescript', '--ts'], kind: 'flag', value: true, default: undefined, preset: true, help: { flags: '--typescript, --javascript', text: 'Select project language', order: 20 } },

@@ -30,6 +30,7 @@ DevCmd is an interactive development CLI for scaffolding projects, detecting exi
 - Manage `.env` files and Docker Compose from the same CLI.
 - Print machine-readable output with `--json`.
 - Let AI agents scaffold, inspect, run, and monitor projects through the built-in MCP server.
+- See what takes disk space and clean caches and rebuildable folders safely with `dev disk` and `dev prune`.
 - See what Claude Code and Codex cost you, day by day and model by model, with `dev ai`.
 
 ## Screenshots
@@ -455,7 +456,7 @@ Supported actions are `up`, `down`, `build`, `ps`, `logs`, and `restart`. DevCmd
 
 ### JSON Output
 
-Add `--json` to print machine-readable JSON on stdout for `inspect`, `doctor`, `projects`, `history`, `recipes`, `openers`, `devices`, `config`, and `ai`. Errors are written to stderr as `{"error": "..."}` and the exit code is 1. `dev doctor --json` exits 1 when a required tool is missing.
+Add `--json` to print machine-readable JSON on stdout for `inspect`, `doctor`, `projects`, `history`, `recipes`, `openers`, `devices`, `config`, `ai`, `disk`, and `prune`. Errors are written to stderr as `{"error": "..."}` and the exit code is 1. `dev doctor --json` exits 1 when a required tool is missing.
 
 ```bash
 dev inspect --json | jq '.actions[] | select(.available) | .command'
@@ -593,6 +594,47 @@ Default configuration:
 }
 ```
 
+## Disk Usage and Cleaning
+
+`dev disk` shows what takes space and never deletes. `dev prune` removes what can be rebuilt, in ways that can be checked and undone. `dev clean` is unchanged: it cleans the build folders of the current project (and now skips anything Git tracks).
+
+```bash
+dev disk                          # project folders, tool caches, stale projects, unused Node versions
+dev disk --root ~/code            # search a folder for projects (default: recent projects, at most 50)
+dev disk --large --min-size 500MB # big files, read only
+dev disk --top                    # browse folders by size (interactive, read only)
+dev disk --trend                  # what grew since earlier runs
+dev disk --check --threshold 50GB # exit 1 when the total is over the limit
+dev disk --json
+```
+
+```bash
+dev prune                         # interactive menu in a terminal
+dev prune                         # without a terminal: lists what it found, removes nothing
+dev prune projects --root ~/code  # list rebuildable folders (node_modules, dist, .venv, ...)
+dev prune caches --only npm --yes # clean one tool cache with the tool's own command
+dev prune --all-safe --yes        # everything marked safe
+dev prune app-caches              # caches and logs of apps; you choose each one; Trash
+dev prune apps "App Name"         # macOS: plan an uninstall; add --yes to run it
+dev prune maintenance             # list the maintenance tasks
+dev prune --log                   # what DevCmd removed, from ~/.devcmd/prune-log.jsonl
+```
+
+**Safety rules.**
+- Nothing is removed unless you pick it (menu) or pass `--yes` together with `--only <id|path>` or `--all-safe`. `--dry-run` always wins.
+- A project folder is `safe` only when it passes four gates: a manifest sits next to it, a lockfile exists (for dependencies), Git ignores it, and the project has not been touched for `--older-than` days (default 30). Anything else is shown as `review` with the reason, and a folder with Git-tracked files is never touched.
+- Items you must review (app caches, apps) go to the Trash, never a permanent delete. If the Trash cannot be used, nothing is deleted.
+- Tool caches are cleaned with the tool's own command (`npm cache clean`, `pnpm store prune`, `pip cache purge`, `brew cleanup`, ...). Cargo, Gradle, Maven, and the data of AI tools (`~/.claude`, `~/.codex`, models) are shown but never removed.
+- A fixed deny list is checked on real paths right before each removal: your Documents, Desktop, Downloads, Pictures, Movies, Music, the home folder itself, Keychains, Mail, iCloud, iOS backups, and system folders. A link into one of them does not get around it. The one exception: a project's own rebuildable folder (`node_modules`, `dist`, ...) that passed every gate may be cleaned even when the project lives under Desktop or Documents; those folders themselves are never touched.
+- `dev prune` never writes to `dev history`, so `dev again` cannot repeat a deletion, and there is no MCP tool that deletes.
+- Sizes with `~` are estimates: files shared by hard links (pnpm) may free less than shown.
+
+**Apps (macOS).** `dev prune apps` lists apps, reads each bundle id, finds leftovers (caches, preferences, saved state) by exact bundle id, and shows name-only matches as weak. Your app data (Application Support, Containers) is never ticked for you. System apps, Apple apps and running apps are refused. An app installed with Homebrew is removed with `brew uninstall --cask --zap`. On Windows and Linux DevCmd prints the official command (`winget uninstall`, `flatpak uninstall`, ...) and removes nothing.
+
+**Administrator rights.** A few maintenance tasks (flush DNS, rebuild Spotlight) need `sudo`. DevCmd never sees your password: it runs `sudo -k -- <command>` with your terminal attached, so you type the password every time. It shows the exact commands and asks first; `--yes` does not replace that question, and without a terminal the task is refused. DevCmd only runs reviewed commands from its own list, never anything you type. Not supported on Windows (the commands are printed). Removal as root refuses any path with a parent folder that is not owned by root, so on a typical Mac `Delete system crash reports` is refused.
+
+Add your own tool caches in `~/.devcmd/cleaners/*.json` (same fields as the built-in list in `src/cleaners/built-ins.json`; a cleaner cannot use a shell or ask for administrator rights).
+
 ## AI Cost
 
 `dev ai` adds up what the AI coding tools on this computer cost, from the logs they already keep. Claude Code (`~/.claude/projects`) and Codex (`~/.codex/sessions`) are supported. Nothing is sent anywhere and no log content is stored.
@@ -706,8 +748,8 @@ History entries store executables and argument arrays instead of shell command s
 --list
 --filter <workspace>        (run, test, build, check, lint, format, task)
 --fix                       (lint only) Apply automatic fixes
---json                      (inspect, doctor, projects, history, recipes, openers, devices, config, ai)
---yes, -y                   (trust only) Approve without the prompt
+--json                      (inspect, doctor, projects, history, recipes, openers, devices, config, ai, disk, prune)
+--yes, -y                   (trust, prune) Approve without the prompt
 --set <name=value>
 --cold-boot
 --shutdown-all
@@ -726,6 +768,14 @@ History entries store executables and argument arrays instead of shell command s
 --pricing <file>            (ai only) Extra price file
 --claude-dir <dir>, --codex-dir <dir>   (ai only) Read logs from another folder
 --no-cache, --no-snapshot, --verbose    (ai only)
+--older-than <days>         (disk, prune) Only projects not touched for this long
+--root <path>               (disk, prune, repeatable) Folder to search for projects
+--only <id|path>            (prune, repeatable) Clean only these items
+--all-safe                  (prune) Select every safe item; needs --yes
+--log                       (prune) Show the deletion log
+--top, --large, --trend     (disk) Browse by size, list big files, show the trend
+--min-size <size>, --threshold <size>   (disk) Big-file limit; size that fails --check
+--check                     (ai, disk) Exit 1 over the budget or threshold
 ```
 
 ## Development

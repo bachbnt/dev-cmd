@@ -58,6 +58,14 @@ const COLLECTORS = {
   config({ config }) {
     return { data: config, exitCode: 0 };
   },
+  async disk(context) {
+    const { data, exitCode } = await require('./disk').collectDisk(context);
+    return { data, exitCode };
+  },
+  async prune(context) {
+    const { data, exitCode } = await require('./prune').collectPrune(context);
+    return { data, exitCode };
+  },
   async ai(context) {
     const { data, exitCode } = await require('./ai').collectAi(context);
     return { data, exitCode };

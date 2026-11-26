@@ -51,6 +51,14 @@ const COMMANDS = [
     plain: (options) => Boolean(options.short || options.check || options.showTools || ['json', 'csv'].includes(options.format)),
     handler: lazy('../handlers/ai', 'handleAi'),
   },
+  {
+    name: 'disk', kind: 'system', section: 'tools', description: 'Show what takes disk space: project folders, tool caches, big files', json: true,
+    handler: lazy('../handlers/disk', 'handleDisk'),
+  },
+  {
+    name: 'prune', kind: 'system', section: 'tools', description: 'Clean caches and rebuildable folders: dev prune [caches|projects|app-caches|apps|maintenance]', json: true,
+    handler: lazy('../handlers/prune', 'handlePrune'),
+  },
   { name: 'mcp', kind: 'system', section: 'tools', description: 'Start the DevCmd MCP server (stdio transport)', handler: lazy('../handlers/mcp', 'handleMcp') },
   { name: 'devices', kind: 'device', section: 'devices', description: 'List Android and iOS devices', json: true, handler: lazy('../handlers/devices', 'handleDeviceList') },
   { name: 'android', kind: 'device', section: 'devices', description: 'Boot Android emulator', handler: lazy('../handlers/devices', 'handleDeviceCommand') },

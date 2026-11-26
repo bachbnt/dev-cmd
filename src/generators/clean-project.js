@@ -3,26 +3,11 @@
 
 const fs = require('fs');
 const path = require('path');
+const { CLEAN_TARGETS, PYTHON_TYPES } = require('../disk/catalog');
 const { isTracked, listTrackedFiles } = require('../disk/safety');
 
 const root = path.resolve(process.argv[2] || '.');
 const type = process.argv[3] || 'unknown';
-
-const CLEAN_TARGETS = {
-  node: ['dist', 'build', 'coverage', '.cache'],
-  react: ['dist', 'build', 'coverage', '.cache'],
-  vue: ['dist', 'coverage', '.cache'],
-  next: ['.next', 'out', 'coverage'],
-  nuxt: ['.nuxt', '.output', 'dist', 'coverage'],
-  nest: ['dist', 'coverage'],
-  express: ['dist', 'coverage'],
-  react_native: ['.expo', 'dist', 'coverage'],
-  react_native_cli: ['android/app/build', 'ios/build', 'coverage'],
-  python: ['build', 'dist', '.pytest_cache', '.mypy_cache', '.ruff_cache', '.tox', '.coverage'],
-  django: ['build', 'dist', '.pytest_cache', '.mypy_cache', '.ruff_cache', '.tox', '.coverage'],
-  fastapi: ['build', 'dist', '.pytest_cache', '.mypy_cache', '.ruff_cache', '.tox', '.coverage'],
-  flask: ['build', 'dist', '.pytest_cache', '.mypy_cache', '.ruff_cache', '.tox', '.coverage'],
-};
 
 const PYTHON_CACHE_DIRECTORIES = new Set(['__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache']);
 const PYTHON_SKIP_DIRECTORIES = new Set(['.git', '.venv', '.tox', 'node_modules']);
@@ -62,4 +47,4 @@ for (const target of CLEAN_TARGETS[type] || CLEAN_TARGETS.node) {
   removeUnlessTracked(path.join(root, target));
 }
 
-if (['python', 'django', 'fastapi', 'flask'].includes(type)) removePythonCaches(root);
+if (PYTHON_TYPES.includes(type)) removePythonCaches(root);

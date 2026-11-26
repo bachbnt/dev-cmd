@@ -1,0 +1,124 @@
+{
+  "tasks": [
+    {
+      "id": "restart-dock",
+      "name": "Restart the Dock",
+      "platforms": [
+        "darwin"
+      ],
+      "does": "Quits the Dock; macOS starts it again at once. Fixes a stuck or misplaced Dock.",
+      "command": {
+        "executable": "/usr/bin/killall",
+        "args": [
+          "Dock"
+        ]
+      },
+      "needsAdmin": false,
+      "reversible": true
+    },
+    {
+      "id": "restart-finder",
+      "name": "Restart Finder",
+      "platforms": [
+        "darwin"
+      ],
+      "does": "Quits Finder; macOS starts it again. Open Finder windows close.",
+      "command": {
+        "executable": "/usr/bin/killall",
+        "args": [
+          "Finder"
+        ]
+      },
+      "needsAdmin": false,
+      "reversible": true
+    },
+    {
+      "id": "brew-doctor",
+      "name": "Check Homebrew",
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "does": "Runs brew doctor, which only reports problems.",
+      "detect": "brew",
+      "command": {
+        "executable": "brew",
+        "args": [
+          "doctor"
+        ]
+      },
+      "needsAdmin": false,
+      "reversible": true
+    },
+    {
+      "id": "npm-doctor",
+      "name": "Check npm",
+      "platforms": [
+        "darwin",
+        "linux",
+        "win32"
+      ],
+      "does": "Runs npm doctor, which only reports problems.",
+      "detect": "npm",
+      "command": {
+        "executable": "npm",
+        "args": [
+          "doctor"
+        ]
+      },
+      "needsAdmin": false,
+      "reversible": true
+    },
+    {
+      "id": "flush-dns",
+      "name": "Flush the DNS cache",
+      "platforms": [
+        "darwin"
+      ],
+      "does": "Clears cached DNS answers. Rarely makes anything faster; useful after a DNS change.",
+      "command": {
+        "executable": "/usr/bin/dscacheutil",
+        "args": [
+          "-flushcache"
+        ]
+      },
+      "then": {
+        "executable": "/usr/bin/killall",
+        "args": [
+          "-HUP",
+          "mDNSResponder"
+        ]
+      },
+      "needsAdmin": true,
+      "reversible": true
+    },
+    {
+      "id": "rebuild-spotlight",
+      "name": "Rebuild the Spotlight index",
+      "platforms": [
+        "darwin"
+      ],
+      "does": "Erases the Spotlight index of the startup disk so it is rebuilt. Search is slow and the fans may spin for hours.",
+      "command": {
+        "executable": "/usr/bin/mdutil",
+        "args": [
+          "-E",
+          "/"
+        ]
+      },
+      "needsAdmin": true,
+      "reversible": true
+    },
+    {
+      "id": "clear-system-crash-reports",
+      "name": "Delete system crash reports",
+      "platforms": [
+        "darwin"
+      ],
+      "does": "Deletes the files inside /Library/Logs/DiagnosticReports. They are crash reports; the deletion cannot be undone.",
+      "removeChildrenOf": "/Library/Logs/DiagnosticReports",
+      "needsAdmin": true,
+      "reversible": false
+    }
+  ]
+}

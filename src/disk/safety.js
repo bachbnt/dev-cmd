@@ -60,7 +60,7 @@ function realOrResolved(file, fsImpl, platform = process.platform) {
   try {
     return fsImpl.realpathSync(file);
   } catch {
-    return platform === 'win32' ? path.win32.resolve(file) : path.resolve(file);
+    return platform === 'win32' ? path.win32.resolve(file) : path.posix.resolve(file);
   }
 }
 

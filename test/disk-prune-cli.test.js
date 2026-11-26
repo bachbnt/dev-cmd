@@ -26,7 +26,9 @@ function project(parent, name) {
 
 function context(command, args, home) {
   const { options, positionals } = parseArgs([command, ...args]);
-  return { command, options, positionals, homeDir: home, now: clock.now };
+  return {
+    command, options, positionals, homeDir: home, now: clock.now, platform: 'darwin',
+  };
 }
 
 test('dev prune lists but never removes without --yes and a selection', async () => {

@@ -121,7 +121,7 @@ function failed(results) {
 
 async function collectMaintenance(context, config, execute) {
   const { options } = context;
-  const tasks = listTasks();
+  const tasks = listTasks({ platform: context.platform });
   if (!options.only?.length || !execute) {
     return { mode: 'maintenance', data: { tasks, dryRun: Boolean(options.only?.length) }, exitCode: 0 };
   }

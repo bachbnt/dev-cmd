@@ -78,7 +78,7 @@ test('elevation needs a terminal, a confirmation, and refuses Windows', async ()
   const calls = [];
   const spawnSync = (executable, args, options) => { calls.push({ executable, args, options }); return { status: 0 }; };
   const command = { executable: '/usr/bin/dscacheutil', args: ['-flushcache'] };
-  assert.match((await runElevated([command], { isTTY: false, confirm: () => true, spawnSync })).reason, /interactive terminal/);
+  assert.match((await runElevated([command], { isTTY: false, confirm: () => true, spawnSync, platform: 'darwin' })).reason, /interactive terminal/);
   assert.equal((await runElevated([command], { isTTY: true, confirm: () => false, spawnSync, platform: 'darwin' })).reason, 'not confirmed');
   assert.equal((await runElevated([command], { isTTY: true, spawnSync, platform: 'darwin' })).reason, 'not confirmed');
   assert.match((await runElevated([command], { isTTY: true, confirm: () => true, spawnSync, platform: 'win32' })).reason, /Windows/);
@@ -98,17 +98,19 @@ test('--yes cannot replace the elevation prompt: administrator tasks do not run 
   const { collectPrune } = require('../src/handlers/prune');
   const { parseArgs } = require('../src/utils/args');
   const parsed = parseArgs(['prune', 'maintenance', '--only', 'flush-dns', '--yes']);
-  const result = await collectPrune({ options: parsed.options, positionals: parsed.positionals, homeDir: tempDir() });
+  const result = await collectPrune({
+    options: parsed.options, positionals: parsed.positionals, homeDir: tempDir(), platform: 'darwin',
+  });
   assert.equal(result.data.results[0].status, 'skipped');
   assert.match(result.data.results[0].reason, /needs administrator rights/);
 });
 
 test('root removal refuses protected paths, user-writable parents, and links; it builds /bin/rm with a real path', () => {
-  assert.equal(planElevatedRemoval('/usr/bin/true', { platform: 'darwin' }).ok, false);
-  assert.equal(planElevatedRemoval('/etc', { platform: 'darwin' }).ok, false);
+  assert.equal(planElevatedRemoval('/usr/bin/true', { platform: 'darwin', fsImpl: { realpathSync: (file) => file } }).ok, false);
+  assert.equal(planElevatedRemoval('/etc', { platform: 'darwin', fsImpl: { realpathSync: (file) => file } }).ok, false);
   assert.match(planElevatedRemoval('/Library/Apple/x', { platform: 'darwin', fsImpl: { realpathSync: (file) => file, lstatSync: () => ({ uid: 0, mode: 0o755 }) } }).reason, /protected|never removed/);
   assert.match(planElevatedRemoval('C:\\x', { platform: 'win32' }).reason, /Windows/);
-  assert.match(planElevatedRemoval(path.join(tempDir(), 'none')).reason, /does not exist/);
+  assert.match(planElevatedRemoval(path.join(tempDir(), 'none'), { platform: 'linux' }).reason, /does not exist/);
 
   const owned = (uid, mode) => ({ lstatSync: () => ({ uid, mode }), realpathSync: (file) => file });
   assert.equal(parentsAreTrusted('/a/b/c', owned(0, 0o755)).ok, true);

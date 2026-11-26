@@ -23,9 +23,13 @@ function buildElevatedCommand({ executable, args = [] }) {
   return { executable: 'sudo', args: ['-k', '--', executable, ...args] };
 }
 
-// Every folder above `target` must be owned by root and not writable by group or others.
+// Every folder above `target` must be owned by root and not writable by group or others. One
+// exception: the folder that directly holds `target` may be world-writable when it has the sticky
+// bit (like /Library/Caches) and `target` itself is owned by root, because then nobody but root
+// can rename, replace or remove that entry while the password is being typed.
 function parentsAreTrusted(target, fsImpl = fs) {
   let current = path.dirname(target);
+  let direct = true;
   for (;;) {
     let stat;
     try {
@@ -34,7 +38,18 @@ function parentsAreTrusted(target, fsImpl = fs) {
       return { ok: false, reason: `cannot inspect ${current}` };
     }
     if (stat.uid !== 0) return { ok: false, reason: `${current} is not owned by root` };
-    if ((stat.mode & 0o022) !== 0) return { ok: false, reason: `${current} can be changed by someone other than root` };
+    if ((stat.mode & 0o022) !== 0) {
+      const sticky = direct && (stat.mode & 0o1000) !== 0;
+      let own;
+      try {
+        own = fsImpl.lstatSync(target);
+      } catch {
+        return { ok: false, reason: `cannot inspect ${target}` };
+      }
+      const rootOwned = own.uid === 0 && !own.isSymbolicLink?.();
+      if (!sticky || !rootOwned) return { ok: false, reason: `${current} can be changed by someone other than root` };
+    }
+    direct = false;
     const parent = path.dirname(current);
     if (parent === current) return { ok: true };
     current = parent;
@@ -59,6 +74,16 @@ function planElevatedRemoval(target, { fsImpl = fs, homeDir, platform = process.
   return { ok: true, command: { executable: '/bin/rm', args: ['-rf', '--', real] }, path: real };
 }
 
+// One `rm` for several planned removals, so the password is asked once, not once per file.
+function combineRemovals(plans, chunk = 200) {
+  const paths = plans.filter((plan) => plan.ok).map((plan) => plan.path);
+  const commands = [];
+  for (let index = 0; index < paths.length; index += chunk) {
+    commands.push({ executable: '/bin/rm', args: ['-rf', '--', ...paths.slice(index, index + chunk)] });
+  }
+  return commands;
+}
+
 // Runs reviewed commands with administrator rights. `confirm(text)` must return true; it is shown
 // the exact commands (it may be async). Returns one result per command.
 async function runElevated(commands, {
@@ -76,4 +101,6 @@ async function runElevated(commands, {
   return { ok: results.every((result) => result.ok), results };
 }
 
-module.exports = { buildElevatedCommand, parentsAreTrusted, planElevatedRemoval, runElevated };
+module.exports = {
+  buildElevatedCommand, combineRemovals, parentsAreTrusted, planElevatedRemoval, runElevated,
+};

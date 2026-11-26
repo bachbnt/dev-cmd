@@ -3,7 +3,9 @@
 const fs = require('fs');
 const path = require('path');
 const { findExecutable } = require('../runner/check');
-const { buildElevatedCommand, planElevatedRemoval, runElevated } = require('../runner/elevate');
+const {
+  buildElevatedCommand, combineRemovals, planElevatedRemoval, runElevated,
+} = require('../runner/elevate');
 const { spawnSyncProcess } = require('../runner/spawn');
 const catalog = require('./built-ins.json');
 
@@ -32,14 +34,39 @@ function listTasks({ platform = process.platform, env = process.env } = {}) {
     .map((task) => ({ ...task, available: task.detect ? Boolean(findExecutable(task.detect, { env })) : true }));
 }
 
-// The `rm` commands that clear a folder as root, or the reasons each entry was refused.
-function planClear(task, { fsImpl = fs, homeDir, platform = process.platform } = {}) {
+// Entries of a folder that a clearing task may remove: not on its skip list, and (when the task
+// names an age or a name pattern) old enough and matching.
+function clearable(task, name, stat, now) {
+  if ((task.skipPrefixes || []).some((prefix) => name.startsWith(prefix))) return false;
+  if (task.pattern && !new RegExp(task.pattern).test(name)) return false;
+  if (task.filesOnly && !stat.isFile()) return false;
+  if (task.olderThanDays && now - stat.mtimeMs < task.olderThanDays * 86_400_000) return false;
+  return true;
+}
+
+// The one `rm` command that clears a folder as root, plus what was left out and why.
+function planClear(task, { fsImpl = fs, homeDir, platform = process.platform, now = Date.now() } = {}) {
   let names = [];
   try {
     names = fsImpl.readdirSync(task.removeChildrenOf);
   } catch {}
-  const plans = names.map((name) => planElevatedRemoval(path.join(task.removeChildrenOf, name), { fsImpl, homeDir, platform }));
-  return { commands: plans.filter((plan) => plan.ok).map((plan) => plan.command), refused: [...new Set(plans.filter((plan) => !plan.ok).map((plan) => plan.reason))] };
+  const eligible = [];
+  for (const name of names) {
+    const full = path.join(task.removeChildrenOf, name);
+    let stat;
+    try {
+      stat = fsImpl.lstatSync(full);
+    } catch {
+      continue;
+    }
+    if (clearable(task, name, stat, now)) eligible.push(full);
+  }
+  const plans = eligible.map((target) => planElevatedRemoval(target, { fsImpl, homeDir, platform }));
+  return {
+    commands: combineRemovals(plans),
+    paths: plans.filter((plan) => plan.ok).map((plan) => plan.path),
+    refused: [...new Set(plans.filter((plan) => !plan.ok).map((plan) => plan.reason))],
+  };
 }
 
 async function runTask(task, {

@@ -151,3 +151,83 @@ test('maintenance tasks: administrator tasks use absolute paths, no shells, and 
   await runTask(dock, { spawnSync, platform: 'darwin' });
   assert.deepEqual(calls, [['/usr/bin/killall', 'Dock']]);
 });
+
+// --- System-wide clearing: one password, sticky folders, filters ---
+
+function fakeTree(entries) {
+  // entries: path -> { uid, mode, file?, mtimeMs? }
+  const stat = (file) => {
+    const entry = entries[file];
+    if (!entry) throw new Error(`no ${file}`);
+    return {
+      uid: entry.uid, mode: entry.mode, mtimeMs: entry.mtimeMs ?? 0, isSymbolicLink: () => false, isFile: () => Boolean(entry.file),
+    };
+  };
+  const children = (dir) => Object.keys(entries).filter((file) => path.posix.dirname(file) === dir).map((file) => path.posix.basename(file));
+  return { lstatSync: stat, realpathSync: (file) => file, readdirSync: children };
+}
+
+test('a sticky world-writable folder is trusted only for entries that root owns', () => {
+  const root = { uid: 0, mode: 0o755 };
+  const tree = fakeTree({
+    '/': root, '/Library': root, '/Library/Caches': { uid: 0, mode: 0o41777 }, '/Library/Caches/Vendor': { uid: 0, mode: 0o755 }, '/Library/Caches/Mine': { uid: 501, mode: 0o755 },
+  });
+  assert.equal(parentsAreTrusted('/Library/Caches/Vendor', tree).ok, true);
+  assert.match(parentsAreTrusted('/Library/Caches/Mine', tree).reason, /someone other than root/);
+  // The exception covers only the folder that directly holds the entry.
+  const deeper = fakeTree({ ...{ '/': root, '/Library': root, '/Library/Caches': { uid: 0, mode: 0o41777 } }, '/Library/Caches/Vendor': { uid: 0, mode: 0o755 }, '/Library/Caches/Vendor/x': { uid: 0, mode: 0o644 } });
+  assert.match(parentsAreTrusted('/Library/Caches/Vendor/x', deeper).reason, /someone other than root/);
+  // A folder that is writable but not sticky is never trusted.
+  const open = fakeTree({ '/': root, '/Library': root, '/Library/Logs': { uid: 0, mode: 0o40775 }, '/Library/Logs/a': { uid: 0, mode: 0o644 } });
+  assert.match(parentsAreTrusted('/Library/Logs/a', open).reason, /someone other than root/);
+});
+
+test('clearing a folder asks for the password once, skips Apple entries, and applies the age and name filters', async () => {
+  const root = { uid: 0, mode: 0o755 };
+  const day = 86_400_000;
+  const now = Date.now();
+  const tree = fakeTree({
+    '/': root, '/Library': root, '/Library/Caches': { uid: 0, mode: 0o41777 },
+    '/Library/Caches/Vendor': { uid: 0, mode: 0o755 }, '/Library/Caches/Other': { uid: 0, mode: 0o755 }, '/Library/Caches/com.apple.x': { uid: 0, mode: 0o755 }, '/Library/Caches/Mine': { uid: 501, mode: 0o755 },
+  });
+  const tasks = listTasks({ platform: 'darwin' });
+  const caches = tasks.find((task) => task.id === 'clear-system-caches');
+  const plan = require('../src/maintenance').planClear(caches, { fsImpl: tree, platform: 'darwin', homeDir: '/Users/a', now });
+  assert.deepEqual([...plan.paths].sort(), ['/Library/Caches/Other', '/Library/Caches/Vendor']);
+  assert.equal(plan.commands.length, 1);
+  assert.deepEqual(plan.commands[0].args, ['-rf', '--', ...plan.paths]);
+  assert.match(plan.refused.join(), /someone other than root/);
+
+  const calls = [];
+  const result = await runTask(caches, {
+    fsImpl: tree, platform: 'darwin', homeDir: '/Users/a', isTTY: true, confirm: () => true, spawnSync: (exe, args, options) => { calls.push({ exe, args, options }); return { status: 0 }; },
+  });
+  assert.equal(result.ok, true);
+  assert.equal(calls.length, 1, 'one sudo call, so one password');
+  assert.deepEqual(calls[0].args.slice(0, 4), ['-k', '--', '/bin/rm', '-rf']);
+  assert.equal(calls[0].options.stdio, 'inherit');
+
+  const logs = tasks.find((task) => task.id === 'clear-old-system-logs');
+  const logTree = fakeTree({
+    '/': root, '/private': root, '/private/var': root, '/private/var/log': root,
+    '/private/var/log/old.log': { uid: 0, mode: 0o644, file: true, mtimeMs: now - 30 * day },
+    '/private/var/log/new.log': { uid: 0, mode: 0o644, file: true, mtimeMs: now - day },
+    '/private/var/log/old.txt': { uid: 0, mode: 0o644, file: true, mtimeMs: now - 30 * day },
+    '/private/var/log/asl': { uid: 0, mode: 0o755, mtimeMs: now - 30 * day },
+  });
+  const logPlan = require('../src/maintenance').planClear(logs, { fsImpl: logTree, platform: 'darwin', homeDir: '/Users/a', now });
+  assert.deepEqual(logPlan.paths, ['/private/var/log/old.log']);
+});
+
+test('refused entries are never part of the command, and nothing is run when nothing is eligible', async () => {
+  const root = { uid: 0, mode: 0o755 };
+  const tree = fakeTree({ '/': root, '/Library': root, '/Library/Caches': { uid: 0, mode: 0o41777 }, '/Library/Caches/Mine': { uid: 501, mode: 0o755 } });
+  const caches = listTasks({ platform: 'darwin' }).find((task) => task.id === 'clear-system-caches');
+  let ran = false;
+  const result = await runTask(caches, {
+    fsImpl: tree, platform: 'darwin', homeDir: '/Users/a', isTTY: true, confirm: () => true, spawnSync: () => { ran = true; return { status: 0 }; },
+  });
+  assert.equal(ran, false);
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /someone other than root/);
+});

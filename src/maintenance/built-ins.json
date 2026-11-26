@@ -119,6 +119,34 @@
       "removeChildrenOf": "/Library/Logs/DiagnosticReports",
       "needsAdmin": true,
       "reversible": false
+    },
+    {
+      "id": "clear-system-caches",
+      "name": "Delete system-wide caches",
+      "platforms": [
+        "darwin"
+      ],
+      "does": "Deletes root-owned entries in /Library/Caches (not Apple's own, com.apple.*). Apps rebuild them; it cannot be undone and frees space only for what is there.",
+      "removeChildrenOf": "/Library/Caches",
+      "skipPrefixes": [
+        "com.apple."
+      ],
+      "needsAdmin": true,
+      "reversible": false
+    },
+    {
+      "id": "clear-old-system-logs",
+      "name": "Delete old system logs",
+      "platforms": [
+        "darwin"
+      ],
+      "does": "Deletes log files (.log, .gz) in /private/var/log that are older than 7 days. It cannot be undone.",
+      "removeChildrenOf": "/private/var/log",
+      "pattern": "\\\\.(log|gz|bz2)$",
+      "filesOnly": true,
+      "olderThanDays": 7,
+      "needsAdmin": true,
+      "reversible": false
     }
   ]
 }

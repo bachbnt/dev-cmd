@@ -1,7 +1,7 @@
 // Copyright (c) 2026 bachbnt
 
 const fs = require('fs');
-const path = require('path');
+const { readJson: readJsonFile, writeJsonAtomic } = require('../store/json-store');
 const { CONFIG_FILE, PACKAGE_MANAGERS } = require('./index');
 
 const DEFAULT_CONFIG = {
@@ -16,9 +16,8 @@ const CONFIG_KEYS = [...Object.keys(DEFAULT_CONFIG), 'editor'];
 
 function readJson(file, fsImpl = fs) {
   try {
-    return JSON.parse(fsImpl.readFileSync(file, 'utf8'));
+    return readJsonFile(file, { fsImpl, fallback: {}, strict: true });
   } catch (error) {
-    if (error.code === 'ENOENT') return {};
     throw new Error(`Unable to read config ${file}: ${error.message}`);
   }
 }
@@ -77,8 +76,7 @@ function saveConfig(config, options = {}) {
   const file = options.file || CONFIG_FILE;
   const fsImpl = options.fsImpl || fs;
   const validated = validateConfig({ ...config });
-  fsImpl.mkdirSync(path.dirname(file), { recursive: true });
-  fsImpl.writeFileSync(file, `${JSON.stringify(validated, null, 2)}\n`);
+  writeJsonAtomic(file, validated, { fsImpl });
   return validated;
 }
 

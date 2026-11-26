@@ -6,6 +6,7 @@ const path = require('path');
 const { TRUST_FILE } = require('../config');
 const { LIFECYCLE_COMMANDS } = require('../constants');
 const { buildRecipeActions } = require('../recipes');
+const { readJson, writeJsonAtomic } = require('../store/json-store');
 const { validateAction } = require('../recipes/schema');
 
 const PROFILE_FILE = '.devcmd.json';
@@ -85,12 +86,8 @@ function loadProfile(root, fsImpl = fs) {
 }
 
 function readTrusted(trustFile, fsImpl = fs) {
-  try {
-    const data = JSON.parse(fsImpl.readFileSync(trustFile, 'utf8'));
-    return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
-  } catch {
-    return {};
-  }
+  const data = readJson(trustFile, { fsImpl, fallback: {} });
+  return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
 }
 
 function isTrusted(profile, options = {}) {
@@ -103,8 +100,7 @@ function trustProfile(profile, options = {}) {
   const fsImpl = options.fsImpl || fs;
   const trusted = readTrusted(trustFile, fsImpl);
   trusted[profile.file] = profile.hash;
-  fsImpl.mkdirSync(path.dirname(trustFile), { recursive: true });
-  fsImpl.writeFileSync(trustFile, `${JSON.stringify(trusted, null, 2)}\n`);
+  writeJsonAtomic(trustFile, trusted, { fsImpl });
 }
 
 function assertTrusted(profile, options = {}) {

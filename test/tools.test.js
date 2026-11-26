@@ -4,7 +4,6 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 const { buildDockerCommands } = require('../src/commands/docker');
 const { checkEnv, initEnv, parseEnvKeys } = require('../src/commands/env');
@@ -12,10 +11,7 @@ const { filterHistory } = require('../src/commands/history');
 const { collectJson } = require('../src/handlers/json');
 const { checkTools } = require('../src/runner/check');
 const { createLinePrefixer, runParallel } = require('../src/runner/parallel');
-
-function tempDir(prefix) {
-  return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-}
+const { tempDir } = require('./helpers');
 
 test('env keys are parsed without reading values', () => {
   assert.deepEqual(

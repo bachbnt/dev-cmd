@@ -8,11 +8,7 @@ const path = require('node:path');
 const { buildLifecycleCommands } = require('../src/commands/lifecycle');
 const { detectProject } = require('../src/projects/detect');
 const { findWorkspaces, resolveWorkspace } = require('../src/projects/workspaces');
-
-function write(file, content) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, typeof content === 'string' ? content : JSON.stringify(content));
-}
+const { writeFile: write } = require('./helpers');
 
 function createMonorepo(manager = 'npm') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'devcmd-workspaces-'));

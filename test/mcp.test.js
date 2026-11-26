@@ -10,6 +10,7 @@ const { TOOLS, callTool } = require('../src/mcp/server');
 const { ProcessManager } = require('../src/mcp/processes');
 const { trustProfile } = require('../src/projects/profile');
 const { detectProject } = require('../src/projects/detect');
+const { tempDir } = require('./helpers');
 
 function text(result) {
   return result.content[0].text;
@@ -17,10 +18,6 @@ function text(result) {
 
 function data(result) {
   return JSON.parse(text(result));
-}
-
-function tempDir(prefix) {
-  return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 }
 
 function createNodeProject(scripts = { test: 'node -e "console.log(\'mcp-test-ok\')"' }) {

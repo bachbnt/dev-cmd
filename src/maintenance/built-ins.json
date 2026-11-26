@@ -142,7 +142,7 @@
       ],
       "does": "Deletes log files (.log, .gz) in /private/var/log that are older than 7 days. It cannot be undone.",
       "removeChildrenOf": "/private/var/log",
-      "pattern": "\\\\.(log|gz|bz2)$",
+      "pattern": "\\.(log|gz|bz2)$",
       "filesOnly": true,
       "olderThanDays": 7,
       "needsAdmin": true,

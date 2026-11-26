@@ -59,7 +59,7 @@ const COMMANDS = [
     handler: lazy('../handlers/disk', 'handleDisk'),
   },
   {
-    name: 'prune', kind: 'system', section: 'tools', description: 'Clean caches and rebuildable folders: dev prune [caches|projects|app-caches|apps|maintenance]', json: true,
+    name: 'prune', kind: 'system', section: 'tools', description: 'Clean caches and rebuildable folders: dev prune [caches|projects|browsers|app-caches|apps|trash|maintenance]', json: true,
     handler: lazy('../handlers/prune', 'handlePrune'),
   },
   { name: 'mcp', kind: 'system', section: 'tools', description: 'Start the DevCmd MCP server (stdio transport)', handler: lazy('../handlers/mcp', 'handleMcp') },

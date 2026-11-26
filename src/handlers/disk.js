@@ -34,7 +34,7 @@ function settings(context) {
 function totalsByGroup(items) {
   const sum = (predicate) => items.filter(predicate).reduce((total, item) => total + item.bytes, 0);
   const project = sum((item) => item.kind === 'project-artifact');
-  const cache = sum((item) => item.kind === 'global-cache');
+  const cache = sum((item) => ['global-cache', 'simulator-runtime', 'browser-cache'].includes(item.kind));
   const info = sum((item) => item.kind === 'info');
   return {
     project, cache, info, total: project + cache + info, reclaimable: sum((item) => item.tier === 'safe'),
@@ -100,7 +100,7 @@ async function collectDisk(context) {
 function showReport(p, data) {
   const groups = [
     ['Project folders', data.items.filter((item) => item.kind === 'project-artifact')],
-    ['Tool caches', data.items.filter((item) => item.kind === 'global-cache' && item.bytes > 0)],
+    ['Tool caches and browsers', data.items.filter((item) => ['global-cache', 'simulator-runtime', 'browser-cache'].includes(item.kind) && item.bytes > 0)],
     ['Other (shown only)', data.items.filter((item) => item.kind === 'info' && item.bytes > 0)],
   ];
   for (const [title, items] of groups) {

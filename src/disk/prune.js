@@ -50,7 +50,7 @@ async function pruneOne(item, options) {
   if (item.tier === 'review' && !allowReview) return outcome(item, 'skipped', { reason: `needs review: ${(item.reasons || []).join('; ')}` });
   if (item.needsAdmin) return outcome(item, 'skipped', { reason: 'needs administrator rights, which this command does not use' });
 
-  if (item.kind === 'global-cache' && item.clean?.executable) {
+  if (item.clean?.executable) {
     if (options.dryRun) return outcome(item, 'would-run', { command: [item.clean.executable, ...item.clean.args].join(' ') });
     const before = item.bytes;
     const result = spawnSync(item.clean.executable, item.clean.args, { encoding: 'utf8', env });
@@ -62,9 +62,13 @@ async function pruneOne(item, options) {
     return outcome(item, 'removed', { method: 'tool-command', command: [item.clean.executable, ...item.clean.args].join(' '), freedBytes: Math.max(0, before - after) });
   }
 
-  const targets = item.kind === 'global-cache'
+  // Folder cleaners name their folders; a browser cache lists its folders in `paths`; the rest is one path.
+  // A folder that is not there (no iPad support files, say) is simply left out.
+  const wanted = item.kind === 'global-cache'
     ? item.clean.paths.map((entry) => expandPath(entry, { homeDir }))
-    : [item.path];
+    : (item.kind === 'browser-cache' ? item.paths : [item.path]);
+  const targets = wanted.length > 1 ? wanted.filter((entry) => fsImpl.existsSync(entry)) : wanted;
+  if (targets.length === 0) return outcome(item, 'skipped', { reason: 'it no longer exists' });
   const allowedRoots = item.kind === 'project-artifact' ? [item.projectRoot] : targets;
   for (const target of targets) {
     const verdict = assertRemovable(target, {
@@ -80,7 +84,7 @@ async function pruneOne(item, options) {
     if (!verdict.ok) return outcome(item, 'skipped', { reason: verdict.reason });
   }
 
-  const toTrash = item.tier === 'review' || item.kind === 'app' || item.kind === 'app-cache';
+  const toTrash = item.tier === 'review' || ['app', 'app-cache', 'browser-cache'].includes(item.kind);
   if (options.dryRun) return outcome(item, 'would-remove', { method: toTrash ? 'moved-to-trash' : 'deleted' });
   for (const target of targets) {
     if (toTrash) {

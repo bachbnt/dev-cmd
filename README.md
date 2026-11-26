@@ -614,7 +614,10 @@ dev prune                         # without a terminal: lists what it found, rem
 dev prune projects --root ~/code  # list rebuildable folders (node_modules, dist, .venv, ...)
 dev prune caches --only npm --yes # clean one tool cache with the tool's own command
 dev prune --all-safe --yes        # everything marked safe
+dev prune caches                  # tool caches, Xcode DerivedData/DeviceSupport/Archives, old iOS Simulator runtimes
+dev prune browsers                # browser caches (Chrome, Brave, Edge, Arc, Vivaldi, Opera, Firefox, Safari); Trash
 dev prune app-caches              # caches and logs of apps; you choose each one; Trash
+dev prune trash                   # show the Trash size; add --yes to empty it for good
 dev prune apps "App Name"         # macOS: plan an uninstall; add --yes to run it
 dev prune maintenance             # list the maintenance tasks
 dev prune --log                   # what DevCmd removed, from ~/.devcmd/prune-log.jsonl
@@ -629,9 +632,17 @@ dev prune --log                   # what DevCmd removed, from ~/.devcmd/prune-lo
 - `dev prune` never writes to `dev history`, so `dev again` cannot repeat a deletion, and there is no MCP tool that deletes.
 - Sizes with `~` are estimates: files shared by hard links (pnpm) may free less than shown.
 
+**Xcode and Simulator.** `xcode-device-support` (rebuilt when you connect a device) and Simulator caches are `safe`. **Xcode Archives** are `review` and go to the Trash: they are your own builds, kept for App Store uploads and crash symbolication. Each **Simulator runtime** (several GB) is a `review` item removed with Xcode's own `xcrun simctl runtime delete`; the newest runtime of each platform says so, because it is the one you most likely use.
+
+**Browsers.** `dev prune browsers` lists one item per browser: only the HTTP, code, GPU and service-worker caches of each profile (and Firefox's `cache2`). A profile folder, passwords, history, bookmarks and cookies are never in the list. A running browser is blocked. Items are `review` and go to the Trash.
+
+**The Trash.** `dev prune trash` shows the Trash size and, with `--yes`, empties it for good (there is also a menu entry, which asks again). macOS lets Finder empty it (`osascript`, a fixed script) and may ask once to allow DevCmd to control Finder; reading the Trash needs Full Disk Access for your terminal, so its size may show as unknown. Linux uses `gio trash --empty`, Windows `Clear-RecycleBin`.
+
 **Apps (macOS).** `dev prune apps` lists apps, reads each bundle id, finds leftovers (caches, preferences, saved state) by exact bundle id, and shows name-only matches as weak. Your app data (Application Support, Containers) is never ticked for you. System apps, Apple apps and running apps are refused. An app installed with Homebrew is removed with `brew uninstall --cask --zap`. On Windows and Linux DevCmd prints the official command (`winget uninstall`, `flatpak uninstall`, ...) and removes nothing.
 
 **Administrator rights.** A few maintenance tasks (flush DNS, rebuild Spotlight) need `sudo`. DevCmd never sees your password: it runs `sudo -k -- <command>` with your terminal attached, so you type the password every time. It shows the exact commands and asks first; `--yes` does not replace that question, and without a terminal the task is refused. DevCmd only runs reviewed commands from its own list, never anything you type. Not supported on Windows (the commands are printed). Maintenance tasks that delete as root: `clear-system-caches` (root-owned entries in `/Library/Caches`, not Apple's), `clear-old-system-logs` (`.log` and `.gz` files in `/private/var/log` older than 7 days) and `clear-system-crash-reports`. Each task asks for the password **once** and shows the exact `sudo -k -- /bin/rm -rf -- ...` command first. DevCmd removes as root only entries that root owns and whose parent folders root alone can change (a sticky folder such as `/Library/Caches` counts for entries root owns); anything else is listed as refused. On a typical Mac `/Library/Logs/DiagnosticReports` is refused for that reason. Run `dev prune maintenance` in a terminal, pick the task, and type your password in the `sudo` prompt. These deletions cannot be undone and free little on a modern Mac, which keeps most caches under your own `~/Library`.
+
+**Tested on a real macOS machine.** CI runs `scripts/macos-e2e.js` on a GitHub macOS runner (a real macOS virtual machine): it uninstalls a fake app with the real `plutil` and Trash, cleans a browser cache while leaving the profile, lists Simulator runtimes with the real `xcrun`, and runs the system-cache task through a real `sudo -k` call (the runner has passwordless sudo, so no password is typed there).
 
 Add your own tool caches in `~/.devcmd/cleaners/*.json` (same fields as the built-in list in `src/cleaners/built-ins.json`; a cleaner cannot use a shell or ask for administrator rights).
 

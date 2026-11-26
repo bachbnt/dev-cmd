@@ -11,7 +11,11 @@ const { measure } = require('./size');
 // already have a cleaner are left out. A running app's cache is never offered.
 
 const DAY_MS = 86_400_000;
-const COVERED_BY_CLEANERS = new Set(['Homebrew', 'pip', 'Yarn', 'CocoaPods', 'go-build', 'node-gyp', 'typescript', 'pnpm']);
+// Tool caches have their own cleaners and browsers have `dev prune browsers`; listing them here too would count them twice.
+const COVERED_BY_CLEANERS = new Set([
+  'Homebrew', 'pip', 'Yarn', 'CocoaPods', 'go-build', 'node-gyp', 'typescript', 'pnpm',
+  'Google', 'BraveSoftware', 'Microsoft Edge', 'Firefox', 'Vivaldi', 'company.thebrowser.Browser', 'com.operasoftware.Opera',
+]);
 
 function sourcesFor({ homeDir, platform, env }) {
   if (platform === 'darwin') {

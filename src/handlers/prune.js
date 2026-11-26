@@ -9,6 +9,7 @@ const { scanAppCaches } = require('../disk/appcaches');
 const { pruneItems } = require('../disk/prune');
 const { describe, itemTable, sizeText } = require('../disk/render');
 const { scanAll } = require('../disk/scan');
+const { emptyCommand, emptyTrash, trashSize } = require('../disk/trashbin');
 const { formatBytes } = require('../disk/size');
 const { listTasks, planClear, runTask } = require('../maintenance');
 const { spawnSyncProcess } = require('../runner/spawn');
@@ -16,13 +17,15 @@ const { spawnSyncProcess } = require('../runner/spawn');
 // `dev prune`: removes what can be rebuilt, in a way that can be checked and undone.
 //   caches        global tool caches (npm, pip, Xcode DerivedData, ...), cleaned by the tool's own command
 //   projects      rebuildable folders of your projects (node_modules, build output) that pass every safety gate
+//   browsers      browser caches (never profiles, passwords or history), moved to the Trash
 //   app-caches    caches and logs of apps, moved to the Trash (you choose each one)
+//   trash         empty the system Trash, which deletes for good
 //   apps [name]   uninstall a macOS app and its leftover files, moved to the Trash
 //   maintenance   a short list of tasks; administrator tasks ask for your password in sudo itself
 // Without --yes and a selection (--only or --all-safe) nothing is removed: the command lists what it would do.
 // Nothing here is written to `dev history`, so `dev again` can never repeat a deletion.
 
-const SUBCOMMANDS = ['caches', 'projects', 'app-caches', 'apps', 'maintenance'];
+const SUBCOMMANDS = ['caches', 'projects', 'browsers', 'app-caches', 'apps', 'trash', 'maintenance'];
 
 function settings(context) {
   const { options } = context;
@@ -58,8 +61,13 @@ async function gather(sub, config) {
   const scan = await scanAll({
     homeDir: config.homeDir, roots: config.roots, olderThanDays: config.olderThanDays, now: config.now.getTime(),
   });
-  const wanted = { caches: ['global-cache'], projects: ['project-artifact'] }[sub] || ['global-cache', 'project-artifact'];
-  return { items: scan.items.filter((item) => wanted.includes(item.kind)), allowReview: false, scan };
+  const wanted = {
+    caches: ['global-cache', 'simulator-runtime'],
+    projects: ['project-artifact'],
+    browsers: ['browser-cache'],
+  }[sub] || ['global-cache', 'simulator-runtime', 'project-artifact', 'browser-cache'];
+  // `review` items are never ticked for you, and they go to the Trash; choosing one is the permission.
+  return { items: scan.items.filter((item) => wanted.includes(item.kind)), allowReview: true, scan };
 }
 
 function summarize(results) {
@@ -115,6 +123,18 @@ function uninstallCask(cask, { homeDir, spawnSync = spawnSyncProcess } = {}) {
   };
 }
 
+async function collectTrash(context, config, execute) {
+  const size = await trashSize({ homeDir: config.homeDir, platform: context.platform });
+  if (!execute) return { mode: 'trash', data: { ...size, dryRun: true, command: emptyCommand({ platform: context.platform }) ?? null }, exitCode: 0 };
+  const result = emptyTrash({ platform: context.platform, spawnSync: context.spawnSync });
+  try {
+    logPrune({
+      id: 'trash', path: null, bytes: size.known ? size.bytes : null, tier: 'review', result: result.ok ? 'removed' : 'failed', method: 'tool-command', command: result.command ? [result.command.executable, ...result.command.args].join(' ') : undefined, reason: result.reason,
+    }, { homeDir: config.homeDir });
+  } catch {}
+  return { mode: 'trash', data: { ...size, emptied: result.ok, reason: result.reason }, exitCode: result.ok ? 0 : 1 };
+}
+
 function failed(results) {
   return results.some((result) => result.status === 'failed') ? 1 : 0;
 }
@@ -162,6 +182,7 @@ async function collectPrune(context) {
   const execute = Boolean(options.yes) && !options.dryRun;
 
   if (sub === 'maintenance') return collectMaintenance(context, config, execute);
+  if (sub === 'trash') return collectTrash(context, config, execute);
   if (sub === 'apps') return collectApps(context, config, execute);
 
   const { items, allowReview, scan } = await gather(sub, config);
@@ -298,6 +319,21 @@ async function interactiveMaintenance(context) {
   else p.log.error(result.reason || 'The task failed.');
 }
 
+async function interactiveTrash(context) {
+  const { p } = context;
+  const config = settings(context);
+  const size = await trashSize({ homeDir: config.homeDir, platform: context.platform });
+  p.log.info(size.known ? `The Trash holds ${formatBytes(size.bytes)}.` : `Trash size unknown. ${size.note}`);
+  const sure = await p.confirm({ message: 'Empty the Trash? Everything in it is deleted for good.', initialValue: false });
+  if (p.isCancel(sure) || !sure) {
+    p.log.info('Cancelled. The Trash was not emptied.');
+    return;
+  }
+  const result = await collectTrash({ ...context, positionals: ['trash'], options: { ...context.options, yes: true } }, config, true);
+  if (result.data.emptied) p.log.success('The Trash is empty.');
+  else p.log.error(result.data.reason || 'The Trash could not be emptied.');
+}
+
 async function runInteractive(context) {
   const { p, positionals } = context;
   let target = positionals[0];
@@ -308,9 +344,11 @@ async function runInteractive(context) {
         { value: 'analyze', label: 'Analyze', hint: 'see what takes space (read only)' },
         { value: 'caches', label: 'Clean tool caches', hint: 'npm, pip, Xcode DerivedData, ...' },
         { value: 'projects', label: 'Clean project folders', hint: 'node_modules, build output' },
+        { value: 'browsers', label: 'Clean browser caches', hint: 'not profiles or passwords; Trash' },
         { value: 'app-caches', label: 'Clean app caches and logs', hint: 'you choose each one; Trash' },
         { value: 'apps', label: 'Uninstall an app', hint: 'macOS; Trash' },
-        { value: 'maintenance', label: 'Maintenance', hint: 'a few tasks' },
+        { value: 'trash', label: 'Empty the Trash', hint: 'deletes for good' },
+        { value: 'maintenance', label: 'Maintenance', hint: 'a few tasks, some need your password' },
       ],
     });
     if (p.isCancel(target)) return;
@@ -321,6 +359,8 @@ async function runInteractive(context) {
     await interactiveApps({ ...context, positionals: ['apps', ...positionals.slice(1)] });
   } else if (target === 'maintenance') {
     await interactiveMaintenance(context);
+  } else if (target === 'trash') {
+    await interactiveTrash(context);
   } else {
     const spin = p.spinner();
     spin.start('Looking for things to clean');
@@ -328,8 +368,8 @@ async function runInteractive(context) {
     spin.stop(`Found ${items.length} item(s)`);
     await chooseAndRun(context, items, {
       allowReview,
-      title: target === 'app-caches' ? 'Choose app caches to move to the Trash' : 'Choose what to clean (safe items are ticked)',
-      preselectSafe: target !== 'app-caches',
+      title: ['app-caches', 'browsers'].includes(target) ? 'Choose what to move to the Trash' : 'Choose what to clean (safe items are ticked)',
+      preselectSafe: !['app-caches', 'browsers'].includes(target),
     });
   }
 }
@@ -348,6 +388,9 @@ function showCollected(p, { mode, data }) {
       ? data.tasks.map((task) => `${task.id.padEnd(26)} ${task.name}${task.needsAdmin ? '  [needs administrator rights]' : ''}`).join('\n')
       : data.results.map((entry) => `${entry.status}  ${entry.id}${entry.reason ? `  - ${entry.reason}` : ''}`).join('\n');
     p.note(text, 'Maintenance');
+  } else if (mode === 'trash') {
+    if (data.dryRun) p.note(`${data.known ? `The Trash holds ${formatBytes(data.bytes)}.` : `Trash size unknown. ${data.note}`}\nTo empty it for good: dev prune trash --yes${data.command ? `\n(runs: ${data.command.executable} ${data.command.args.join(' ')})` : ''}`, 'Trash');
+    else p.log[data.emptied ? 'success' : 'error'](data.emptied ? 'The Trash is empty.' : data.reason);
   } else if (mode === 'apps') {
     p.note(data.apps.map((app) => `${app.name}  ${app.bundleId ?? ''}`).join('\n'), 'Installed apps. Plan one with: dev prune apps <name>');
   } else if (mode === 'app-plan') {

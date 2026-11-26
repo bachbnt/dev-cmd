@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 const { findExecutable } = require('../runner/check');
 const { getPaths } = require('../config/paths');
+const { createFileLoaders } = require('../registry/files');
 const { validateCleaner } = require('./schema');
 const builtIns = require('./built-ins.json');
 
@@ -12,25 +13,21 @@ const builtIns = require('./built-ins.json');
 // with an existing id replaces the built-in one. `{home}`, `{localappdata}` and `{appdata}` in
 // paths are expanded for the current user.
 
+const { loadDirectory } = createFileLoaders({
+  noun: 'cleaner',
+  validate: (raw) => validateCleaner(raw, 'cleaner'),
+  attach: (cleaner, source) => ({ ...cleaner, source }),
+  expand: (parsed) => (Array.isArray(parsed.cleaners) ? parsed.cleaners : [parsed]),
+});
+
 function loadCleaners({ homeDir = os.homedir(), includeUser = true, fsImpl = fs } = {}) {
   const registry = new Map();
   for (const raw of builtIns.cleaners) registry.set(raw.id, { ...validateCleaner(raw, 'built-in cleaner'), source: 'built-in' });
-  const directory = getPaths(homeDir).cleanersDir;
-  if (includeUser && fsImpl.existsSync(directory)) {
-    for (const name of fsImpl.readdirSync(directory).filter((file) => file.endsWith('.json')).sort()) {
-      const file = path.join(directory, name);
-      let data;
-      try {
-        data = JSON.parse(fsImpl.readFileSync(file, 'utf8'));
-      } catch (error) {
-        throw new Error(`Invalid cleaner file ${file}: ${error.message}`);
-      }
-      for (const raw of Array.isArray(data.cleaners) ? data.cleaners : [data]) {
-        const cleaner = validateCleaner(raw, file);
-        // A user cleaner can never take away a protection: it may not claim the safe tier for admin work.
-        if (cleaner.needsAdmin) throw new Error(`${file}: ${cleaner.id}: user cleaners cannot request administrator rights`);
-        registry.set(cleaner.id, { ...cleaner, source: 'user' });
-      }
+  if (includeUser) {
+    for (const cleaner of loadDirectory(getPaths(homeDir).cleanersDir, 'user', { fsImpl })) {
+      // A user cleaner can never take away a protection: it may not ask for administrator rights.
+      if (cleaner.needsAdmin) throw new Error(`${cleaner.id}: user cleaners cannot request administrator rights`);
+      registry.set(cleaner.id, cleaner);
     }
   }
   return registry;

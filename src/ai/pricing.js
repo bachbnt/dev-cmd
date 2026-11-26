@@ -42,6 +42,8 @@ function toEntry(raw, label) {
   }
   return {
     name: normalize(raw.match),
+    label: raw.match,
+    source: typeof raw.source === 'string' ? raw.source : undefined,
     price: {
       input: raw.input,
       output: raw.output,
@@ -56,6 +58,7 @@ class PriceTable {
   constructor() {
     this.entries = [];
     this.lookups = new Map();
+    this.updated = undefined;
   }
 
   static fromToml(text, label = 'pricing') {
@@ -73,7 +76,10 @@ class PriceTable {
   }
 
   static builtIn() {
-    return PriceTable.fromToml(fs.readFileSync(BUILT_IN_FILE, 'utf8'), 'built-in pricing');
+    const text = fs.readFileSync(BUILT_IN_FILE, 'utf8');
+    const table = PriceTable.fromToml(text, 'built-in pricing');
+    table.updated = /^# PRICES-UPDATED: (\d{4}-\d{2}-\d{2})$/m.exec(text)?.[1];
+    return table;
   }
 
   mergeFile(file) {

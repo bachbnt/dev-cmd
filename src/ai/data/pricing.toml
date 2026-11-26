@@ -1,6 +1,9 @@
+# PRICES-UPDATED: 2026-11-23
 # SYNC: this file is a copy of aicost's crates/core/data/pricing.toml (copied 2026-11-26). The
 # prices live in two repositories for now: when one changes, change both and run
 # `node scripts/ai-parity.js`. The matching rules below are identical in both programs.
+# PRICES-UPDATED is the day the prices below were last checked against the vendors' pages
+# (the newest "checked" date in the comments); `dev ai` warns when it is older than aiPriceStaleDays.
 #
 # Prices in USD per 1,000,000 tokens. This file is built into aicost; to change or add a model,
 # put the same kind of entry in ~/.config/aicost/pricing.toml (or pass --pricing FILE). An entry

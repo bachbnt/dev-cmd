@@ -74,6 +74,9 @@ module.exports = {
         model: typeof message.model === 'string' ? message.model : 'gemini (model not recorded)',
         session: state.session,
         project: state.project,
+        cwd: '',
+        branch: '',
+        sidechain: false,
         at,
         tokens: tokensOf(message.tokens),
       });

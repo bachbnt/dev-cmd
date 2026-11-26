@@ -62,10 +62,11 @@ module.exports = {
   defaultDir: (homeDir) => path.join(homeDir, '.codex', 'sessions'),
   isLog: (file) => file.endsWith('.jsonl'),
   needles: ['"token_count"', '"turn_context"', '"session_meta"'],
-  version: 1,
+  version: 2,
   initState: (file) => ({
     session: path.basename(file, path.extname(file)),
     project: '(unknown)',
+    cwd: '',
     model: 'unknown',
     previous: { ...EMPTY_TOTALS },
   }),
@@ -87,7 +88,8 @@ module.exports = {
     if (typeof payload.id === 'string' && 'cwd' in payload) {
       // `session_meta`: the only payload with both an id and a working directory.
       state.session = payload.id;
-      state.project = projectName(typeof payload.cwd === 'string' ? payload.cwd : '');
+      state.cwd = typeof payload.cwd === 'string' ? payload.cwd : '';
+      state.project = projectName(state.cwd);
     } else if ('turn_id' in payload && 'model' in payload) {
       // `turn_context`: the model of the requests that follow.
       if (typeof payload.model === 'string') state.model = payload.model;
@@ -104,7 +106,7 @@ module.exports = {
       }
       if (!isEmpty(tokens)) {
         out.records.push({
-          key: null, tool: 'codex', model: state.model, session: state.session, project: state.project, at, tokens,
+          key: null, tool: 'codex', model: state.model, session: state.session, project: state.project, cwd: state.cwd, branch: '', sidechain: false, at, tokens,
         });
       }
     }

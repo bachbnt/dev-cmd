@@ -43,6 +43,9 @@ function readRows(rows) {
       model: row.model,
       session: String(row.session_id ?? ''),
       project: projectName(row.cwd),
+      cwd: typeof row.cwd === 'string' ? row.cwd : '',
+      branch: '',
+      sidechain: false,
       at,
       tokens,
       reportedCost: typeof row.total_nano_aiu === 'number' ? row.total_nano_aiu / 1e9 : undefined,
@@ -59,6 +62,14 @@ module.exports = {
   maturity: 'experimental',
   defaultDir: (homeDir) => path.join(homeDir, '.copilot'),
   dbFile: 'session-store.db',
-  read: (file, options) => readRows(queryRows(file, SQL, options)),
+  read(file, options) {
+    try {
+      return readRows(queryRows(file, SQL, options));
+    } catch (error) {
+      // Older Copilot versions have no usage table: nothing to count, not an error.
+      if (/no such table/i.test(error.message)) return { records: [], skipped: 0 };
+      throw error;
+    }
+  },
   readRows,
 };

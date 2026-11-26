@@ -18,6 +18,7 @@ const { formatSequence } = require('../runner/command');
 const { runSequenceCaptured } = require('../runner/captured');
 const { validateProjectName } = require('../utils/args');
 const { ProcessManager } = require('./processes');
+const aiCost = require('./ai-tool');
 
 const DEV_BINARY = path.join(__dirname, '..', '..', 'dev');
 const DEFAULT_TIMEOUT_MS = 120000;
@@ -169,6 +170,7 @@ const TOOLS = [
       },
     },
   },
+  aiCost.definition,
 ];
 
 function textResult(text, isError = false) {
@@ -360,6 +362,7 @@ const HANDLERS = {
     return jsonResult({ android: getAndroidDevices(), ios: getIOSDevices() });
   },
   boot_device: bootDevice,
+  ai_cost: aiCost.handler,
   get_history(args) {
     const limit = Math.min(positiveInteger(args.limit, 10), 50);
     return jsonResult(filterHistory(readHistory(), args).slice(0, limit).map((entry) => ({

@@ -95,7 +95,7 @@ flowchart TD
 | `src/cleaners/` | Danh mục cache toàn cục khai báo bằng JSON (`built-ins.json` + `~/.devcmd/cleaners/*.json`), `schema.js` cấm shell và cấm quyền admin cho cleaner của người dùng. |
 | `src/apps/`, `src/maintenance/` | Gỡ app macOS (liệt kê, bundle id qua `plutil`, tìm file còn sót, cask Homebrew) và danh mục bảo trì tối thiểu. |
 | `src/runner/elevate.js` | **Cổng nâng quyền duy nhất**: `sudo -k --`, `stdio: inherit`, không bao giờ nhận mật khẩu, cần TTY, cần xác nhận riêng, xóa bằng root chỉ qua `/bin/rm` với realpath và thư mục cha thuộc root. |
-| `src/config/` | `paths.js` (`getPaths(homeDir)`, mọi đường dẫn `~/.devcmd/*` và nhận `homeDir` để test), các hằng số cũ dẫn xuất từ đó, `VERSION` (đọc từ `package.json`), `frameworkDefinitions` (sinh từ recipe); `user.js` đọc/ghi config người dùng. |
+| `src/config/` | `user.js` (**schema có kiểu** `SCHEMA`: kiểu, mặc định, thông báo lỗi; `CONFIG_KEYS`, `parseConfigValue`, `validateConfig` đều sinh từ đó), `paths.js` (`getPaths(homeDir)`, mọi đường dẫn `~/.devcmd/*` và nhận `homeDir` để test), các hằng số cũ dẫn xuất từ đó, `VERSION` (đọc từ `package.json`), `frameworkDefinitions` (sinh từ recipe); `user.js` đọc/ghi config người dùng. |
 | `src/handlers/` | Mỗi lệnh CLI một handler: `scaffold`, `lifecycle`, `workflow` (task/parallel/trust), `system` (doctor/config/recipes/openers/projects/update), `devices`, `history`, `clone`, `tools` (env/docker), `json`, `mcp`. |
 | `src/commands/` | Hàm thuần dựng danh sách lệnh: `frameworks`, `lifecycle`, `inspect`, `devices`, `history`, `env`, `docker`, `completion`. |
 | `src/recipes/` | **Recipe engine**: `loader` (built-in + user), `schema` (validate), `engine` (nội suy → command), `action-runner.js` (mkdir/write/copy chạy như child process). Dữ liệu ở `built-ins.json`. |
@@ -105,8 +105,9 @@ flowchart TD
 | `src/runtime/execute.js` | `executeCommands`: dry-run → kiểm tra yêu cầu → chạy → thông báo → lưu history/project. |
 | `src/devices/` | Liệt kê Android emulator, iOS simulator. |
 | `src/generators/` | Script nội bộ (python-project, clean-project, reset-project) được chạy như child process. |
-| `src/ai/` | **`dev ai`** (chi phí công cụ AI): `sources/` (một file mỗi công cụ: Claude, Codex), `lines.js` (quét dòng bằng Buffer thô, chỉ chuyển thành chuỗi những dòng chứa từ khóa), `scan.js` (tìm file, đọc song song, bỏ trùng), `cache.js` (cache quét tăng dần), `pricing.js` + `data/pricing.toml` (bảng giá), `query.js`, `report.js`, `snapshot.js` (tổng theo ngày), `budget.js`, `render.js`. Tính ra cùng số với aicost (`scripts/ai-parity.js`). |
-| `src/mcp/` | MCP server stdio: `server.js`, `tools.js` (định nghĩa + `callTool`), `processes.js` (`ProcessManager` cho tiến trình nền). |
+| `src/registry/files.js` | Đọc file JSON của registry dùng chung (một file, thư mục, thông báo lỗi) cho recipes, openers và cleaners (T4). |
+| `src/ai/` | **`dev ai`** (chi phí công cụ AI): `sources/` (một file mỗi công cụ: Claude, Codex, Gemini, Copilot, OpenCode; nguồn SQLite qua `sqlite.js`), `analysis.js` (hiệu quả, phiên đắt nhất, bất thường), `machines.js` (gộp nhiều máy), `lines.js` (quét dòng bằng Buffer thô, chỉ chuyển thành chuỗi những dòng chứa từ khóa), `scan.js` (tìm file, đọc song song, bỏ trùng), `cache.js` (cache quét tăng dần), `pricing.js` + `data/pricing.toml` (bảng giá), `query.js`, `report.js`, `snapshot.js` (tổng theo ngày), `budget.js`, `render.js`. Tính ra cùng số với aicost (`scripts/ai-parity.js`). |
+| `src/mcp/` | MCP server stdio: `server.js`, `tools.js` (định nghĩa + `callTool`), `ai-tool.js` (tool `ai_cost`, chỉ đọc, không lộ tên project/phiên/nhánh/khách), `processes.js` (`ProcessManager` cho tiến trình nền). |
 | `test/` | `node --test`, mỗi module một file test. |
 | `.ai/skills`, `.claude/skills` | Skill AI dùng lại cho dự án (symlink). |
 | `scripts/`, `.github/workflows/` | Cài đặt, release, CI, publish npm. |

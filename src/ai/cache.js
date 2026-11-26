@@ -43,18 +43,24 @@ function encodeRecords(records) {
   };
   const rows = records.map((record) => {
     const { input, output, cache_read: read, cache_write_5m: five, cache_write_1h: hour } = record.tokens;
-    return [record.key, id(record.model), id(record.session), id(record.project), record.at, input, output, read, five, hour];
+    return [
+      record.key, id(record.model), id(record.session), id(record.project), record.at, input, output, read, five, hour,
+      id(record.cwd ?? ''), id(record.branch ?? ''), record.sidechain ? 1 : 0,
+    ];
   });
   return { table, rows };
 }
 
 function decodeRecords(tool, { table, rows }) {
-  return rows.map(([key, model, session, project, at, input, output, read, five, hour]) => ({
+  return rows.map(([key, model, session, project, at, input, output, read, five, hour, cwd, branch, sidechain]) => ({
     key,
     tool,
     model: table[model],
     session: table[session],
     project: table[project],
+    cwd: table[cwd] ?? '',
+    branch: table[branch] ?? '',
+    sidechain: sidechain === 1,
     at,
     tokens: {
       input, output, cache_read: read, cache_write_5m: five, cache_write_1h: hour,

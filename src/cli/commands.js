@@ -48,7 +48,10 @@ const COMMANDS = [
   { name: 'update', kind: 'system', section: 'tools', description: 'Update DevCmd to the latest version', handler: lazy('../handlers/system', 'handleUpdate') },
   {
     name: 'ai', kind: 'system', section: 'tools', description: 'Show what AI coding tools cost: dev ai [today|week|month|report]', json: true,
-    plain: (options) => Boolean(options.short || options.check || options.showTools || ['json', 'csv'].includes(options.format)),
+    plain: (options) => Boolean(
+      options.short || options.check || options.showTools || options.showPrices || options.statuslineConfig || options.machines
+      || options.importSnapshot || options.exportSnapshot || options.sessions || options.efficiency || (options.format && options.format !== 'table')
+    ),
     handler: lazy('../handlers/ai', 'handleAi'),
   },
   {

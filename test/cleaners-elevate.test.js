@@ -48,7 +48,7 @@ test('user cleaners replace built-ins by id but cannot ask for administrator rig
   writeFile(path.join(home, '.devcmd', 'cleaners', 'mine.json'), { ...base, needsAdmin: true });
   assert.throws(() => loadCleaners({ homeDir: home }), /cannot request administrator rights/);
   writeFile(path.join(home, '.devcmd', 'cleaners', 'mine.json'), '{oops');
-  assert.throws(() => loadCleaners({ homeDir: home }), /Invalid cleaner file/);
+  assert.throws(() => loadCleaners({ homeDir: home }), /Unable to read cleaner/);
 });
 
 test('detection follows the platform and expands {home} and {localappdata}', () => {

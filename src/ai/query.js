@@ -87,6 +87,17 @@ function containsAny(text, needles) {
   return needles.some((needle) => lower.includes(needle.toLowerCase()));
 }
 
+// The client a working directory belongs to: the longest configured path that contains it.
+function clientOf(cwd, clients) {
+  const normalized = String(cwd || '').replace(/\\/g, '/').replace(/\/+$/, '');
+  let best;
+  for (const { prefix, name } of clients) {
+    const base = String(prefix).replace(/\\/g, '/').replace(/\/+$/, '');
+    if ((normalized === base || normalized.startsWith(`${base}/`)) && (!best || base.length > best.length)) best = { length: base.length, name };
+  }
+  return best ? best.name : '(unassigned)';
+}
+
 function createQuery(overrides = {}) {
   return {
     since: undefined,
@@ -95,6 +106,7 @@ function createQuery(overrides = {}) {
     tools: [],
     projects: [],
     models: [],
+    clients: [],
     offsetMinutes: 0,
     ...overrides,
   };
@@ -121,6 +133,8 @@ function groupKey(query, usage, day = dayOf(query, usage)) {
     case 'model': return usage.model;
     case 'tool': return usage.tool;
     case 'session': return [...usage.session].slice(0, 8).join('');
+    case 'branch': return usage.branch || '(unknown)';
+    case 'client': return clientOf(usage.cwd, query.clients);
     default: throw new Error(`Unsupported grouping: ${query.groupBy}`);
   }
 }
@@ -134,6 +148,7 @@ function modifiedSince(query) {
 
 module.exports = {
   addDays,
+  clientOf,
   createQuery,
   currentOffsetMinutes,
   dayOf,

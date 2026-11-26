@@ -103,7 +103,9 @@ async function collectAi(context) {
     cacheFile: options.noCache ? undefined : paths.aiScanCacheFile,
     readOnlyCache: Boolean(options.dryRun),
   });
-  if (query.tools.length > 0) stats.missing = stats.missing.filter((tool) => query.tools.includes(tool));
+  // A tool you never installed is not worth a note, except Claude Code and Codex (the original pair)
+  // or a tool you asked for by name.
+  stats.missing = stats.missing.filter((tool) => (query.tools.length > 0 ? query.tools.includes(tool) : ['claude', 'codex'].includes(tool)));
 
   const notes = [];
   const snapshot = loadSnapshot(paths.aiDailyFile);

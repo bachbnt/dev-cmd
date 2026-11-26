@@ -51,7 +51,7 @@ async function listLogs(source, root) {
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) pending.push(full);
-      else if (entry.isFile() && source.isLog(entry.name)) files.push(full);
+      else if (entry.isFile() && source.isLog(entry.name, full)) files.push(full);
     }
   }
   return files.sort();
@@ -93,6 +93,23 @@ async function readLog(source, file, stat, cached) {
   return { entry, records: live.records, skipped: live.skipped, changed: !unchanged };
 }
 
+// SQLite sources have no byte stream to resume, so they are read whole each run (they are small).
+async function readDatabase(source, file, options) {
+  const { records, skipped } = await Promise.resolve(source.read(file, options));
+  return { entry: undefined, records, skipped, changed: false };
+}
+
+// Newest modification time of a database and its write-ahead log (the log changes first).
+function databaseMtime(file) {
+  let newest = 0;
+  for (const suffix of ['', '-wal']) {
+    try {
+      newest = Math.max(newest, fs.statSync(file + suffix).mtimeMs);
+    } catch {}
+  }
+  return newest;
+}
+
 // config: { homeDir, dirs: { claude, codex }, tools: [], modifiedSince: ms, cacheFile }
 async function scan(config) {
   const stats = emptyScan();
@@ -109,12 +126,19 @@ async function scan(config) {
       continue;
     }
     scannedRoots.push(root);
+    if (source.kind === 'sqlite') {
+      const file = path.join(root, source.dbFile);
+      if (fs.existsSync(file)) jobs.push({ source, file, database: true });
+      else stats.missing.push(source.tool);
+      continue;
+    }
     for (const file of await listLogs(source, root)) jobs.push({ source, file });
   }
 
   const statted = await mapLimit(jobs, CONCURRENCY, async (job) => {
     try {
-      return { ...job, stat: await fs.promises.stat(job.file) };
+      const stat = await fs.promises.stat(job.file);
+      return { ...job, stat: job.database ? { ...stat, mtimeMs: databaseMtime(job.file) } : stat };
     } catch (error) {
       stats.unreadable.push(`${job.file}: ${error.message}`);
       return undefined;
@@ -123,8 +147,9 @@ async function scan(config) {
   const known = new Set(statted.filter(Boolean).map((job) => job.file));
   const wanted = statted.filter(Boolean).filter((job) => config.modifiedSince === undefined || job.stat.mtimeMs >= config.modifiedSince);
 
-  const results = await mapLimit(wanted, CONCURRENCY, async ({ source, file, stat }) => {
+  const results = await mapLimit(wanted, CONCURRENCY, async ({ source, file, stat, database }) => {
     try {
+      if (database) return { file, ...await readDatabase(source, file, config.sqlite) };
       return { file, ...await readLog(source, file, stat, cache.files[file]) };
     } catch (error) {
       return { file, error };
@@ -140,7 +165,7 @@ async function scan(config) {
     }
     stats.files += 1;
     stats.skipped_lines += result.skipped;
-    nextFiles[result.file] = result.entry;
+    if (result.entry) nextFiles[result.file] = result.entry;
     if (result.changed) dirty = true;
     for (const record of result.records) {
       if (record.key !== null && seen.has(record.key)) {

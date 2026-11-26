@@ -114,6 +114,12 @@ class PriceTable {
     ) / PER_TOKENS;
   }
 
+  // The cost of one request: what the tool reported when it reports one (Copilot, OpenCode),
+  // otherwise tokens times the price table. undefined means no price.
+  costOf(usage) {
+    return usage.reportedCost !== undefined ? usage.reportedCost : this.cost(usage.model, usage.tokens);
+  }
+
   get size() {
     return this.entries.length;
   }

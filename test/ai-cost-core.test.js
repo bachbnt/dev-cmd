@@ -25,7 +25,9 @@ const DIRS = { claude: path.join(FIXTURES, 'claude'), codex: path.join(FIXTURES,
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} !== ${expected}`);
 
 async function onFixtures(overrides = {}, scanOverrides = {}) {
-  const { usages, stats } = await scan({ homeDir: '/nonexistent', dirs: DIRS, ...scanOverrides });
+  const { usages, stats } = await scan({
+    homeDir: '/nonexistent', dirs: DIRS, tools: ['claude', 'codex'], ...scanOverrides,
+  });
   return buildReport(usages, PriceTable.builtIn(), createQuery(overrides), stats);
 }
 
@@ -84,7 +86,9 @@ test('the period and the filters narrow the report', async () => {
 });
 
 test('a missing log folder is noted and asking for one tool does not read the other', async () => {
-  const missing = await scan({ homeDir: '/nonexistent', dirs: { claude: DIRS.claude, codex: path.join(FIXTURES, 'nope') } });
+  const missing = await scan({
+    homeDir: '/nonexistent', tools: ['claude', 'codex'], dirs: { claude: DIRS.claude, codex: path.join(FIXTURES, 'nope') },
+  });
   assert.deepEqual(missing.stats.missing, ['codex']);
   assert.equal(missing.usages.length, 5);
   const only = await scan({ homeDir: '/nonexistent', dirs: DIRS, tools: ['claude'] });

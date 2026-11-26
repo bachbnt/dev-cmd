@@ -1,18 +1,15 @@
 // Copyright (c) 2026 bachbnt
 
-const LIFECYCLE_COMMANDS = [
-  'install', 'run', 'test', 'build', 'check', 'lint', 'format',
-  'outdated', 'upgrade', 'audit', 'clean', 'reset', 'open',
-];
-const SYSTEM_COMMANDS = [
-  'config', 'doctor', 'projects', 'recipes', 'openers', 'inspect', 'info', 'history', 'again',
-  'init', 'update', 'clone', 'mcp', 'completion', 'task', 'parallel', 'env', 'docker', 'trust',
-];
-const DEVICE_COMMANDS = ['devices', 'android', 'ios'];
-const FILTER_COMMANDS = ['run', 'test', 'build', 'check', 'lint', 'format', 'task'];
-const JSON_COMMANDS = [
-  'inspect', 'doctor', 'projects', 'history', 'recipes', 'openers', 'devices', 'config',
-];
+// Derived from the command registry in `cli/commands.js`; do not list commands here.
+const { COMMANDS } = require('./cli/commands');
+
+const names = (predicate) => COMMANDS.filter(predicate).map((command) => command.name);
+
+const LIFECYCLE_COMMANDS = names((command) => command.kind === 'lifecycle');
+const DEVICE_COMMANDS = names((command) => command.kind === 'device');
+const SYSTEM_COMMANDS = names((command) => command.kind === 'system');
+const FILTER_COMMANDS = names((command) => command.filter);
+const JSON_COMMANDS = names((command) => command.json);
 
 module.exports = {
   DEVICE_COMMANDS,

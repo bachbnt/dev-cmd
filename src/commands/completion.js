@@ -1,38 +1,13 @@
 // Copyright (c) 2026 bachbnt
 
 const { frameworkDefinitions } = require('../config');
+const { COMMANDS: REGISTRY } = require('../cli/commands');
+const { completionOptions } = require('../cli/options');
 
-const { LIFECYCLE_COMMANDS } = require('../constants');
-
-const SYSTEM_COMMANDS = [
-  'doctor',
-  'inspect',
-  ...LIFECYCLE_COMMANDS,
-  'task',
-  'parallel',
-  'trust',
-  'env',
-  'docker',
-  'devices',
-  'android',
-  'ios',
-  'history',
-  'again',
-  'projects',
-  'recipes',
-  'openers',
-  'config',
-  'completion',
-  'help',
-];
+// Every registered command plus `help`, generated from the command registry.
+const SYSTEM_COMMANDS = [...REGISTRY.map((command) => command.name), 'help'];
 const COMMANDS = [...Object.keys(frameworkDefinitions), ...SYSTEM_COMMANDS];
-
-const OPTIONS = [
-  '--dry-run', '--typescript', '--javascript', '--npm', '--pnpm', '--yarn',
-  '--git', '--no-git', '--eslint', '--no-eslint', '--no-install', '--python', '--editor',
-  '--cold-boot', '--shutdown-all', '--set', '--with', '--list',
-  '--filter', '--fix', '--json', '--search', '--yes',
-];
+const OPTIONS = completionOptions();
 
 function commandNames(definitions = frameworkDefinitions) {
   return [...Object.keys(definitions), ...SYSTEM_COMMANDS];

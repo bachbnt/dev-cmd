@@ -69,6 +69,7 @@ const OPTION_DEFS = [
   { key: 'claudeDir', names: ['--claude-dir'], kind: 'value', default: undefined, invalid: '--claude-dir requires a folder.', onlyFor: ['ai'], help: { flags: '--claude-dir <dir>', text: 'Read Claude Code logs from another folder (ai only)', order: 221 } },
   { key: 'codexDir', names: ['--codex-dir'], kind: 'value', default: undefined, invalid: '--codex-dir requires a folder.', onlyFor: ['ai'], help: { flags: '--codex-dir <dir>', text: 'Read Codex logs from another folder (ai only)', order: 221.5 } },
   { key: 'noCache', names: ['--no-cache'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--no-cache, --no-snapshot', text: 'Skip the scan cache or the daily history file (ai only)', order: 222 } },
+  { key: 'notify', names: ['--notify'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--notify', text: 'With --check: a system notification when over budget or unusual (ai only)', order: 216.5 } },
   { key: 'noSnapshot', names: ['--no-snapshot'], kind: 'flag', default: false, onlyFor: ['ai'] },
   { key: 'efficiency', names: ['--efficiency'], kind: 'flag', default: false, onlyFor: ['ai'], help: { flags: '--efficiency', text: 'Cache ratio, cost per model, plan vs API price (ai only)', order: 224 } },
   { key: 'sessions', names: ['--sessions'], kind: 'value', default: undefined, valid: (value) => /^[1-9]\d*$/.test(value || ''), invalid: '--sessions requires a number of sessions.', onlyFor: ['ai'], help: { flags: '--sessions <n>', text: 'The n most expensive sessions (ai only)', order: 224.5 } },

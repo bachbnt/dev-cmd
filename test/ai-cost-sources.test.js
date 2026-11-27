@@ -12,6 +12,7 @@ const { createQuery } = require('../src/ai/query');
 const { queryRows } = require('../src/ai/sqlite');
 const copilot = require('../src/ai/sources/copilot');
 const opencode = require('../src/ai/sources/opencode');
+const codex = require('../src/ai/sources/codex');
 const { describeSources } = require('../src/ai/sources');
 const { tempDir } = require('./helpers');
 
@@ -93,6 +94,29 @@ test('OpenCode rows: output already holds reasoning, cost is the tool\'s own, an
   assert.equal(records[0].reportedCost, 0.12);
   assert.equal(records[0].at, 1_770_905_193_201);
   assert.equal(records[0].project, 'app');
+});
+
+test('sub-agent sessions are marked: Codex source.subagent, OpenCode parent_id', () => {
+  const run = (source) => {
+    const state = codex.initState('/x/rollout.jsonl');
+    const out = { records: [], skipped: 0 };
+    codex.onLine(JSON.stringify({ timestamp: '2026-11-02T09:00:00Z', payload: { id: 's', cwd: '/w/app', source } }), state, out);
+    codex.onLine(JSON.stringify({ timestamp: '2026-11-02T09:00:01Z', payload: { turn_id: 't', model: 'gpt-x' } }), state, out);
+    codex.onLine(JSON.stringify({ timestamp: '2026-11-02T09:01:00Z', payload: { type: 'token_count', info: { total_token_usage: { input_tokens: 10, cached_input_tokens: 0, output_tokens: 5, total_tokens: 15 } } } }), state, out);
+    return out.records[0].sidechain;
+  };
+  assert.equal(run('cli'), false);
+  assert.equal(run(undefined), false);
+  assert.equal(run({ subagent: { other: 'guardian' } }), true);
+
+  const data = JSON.stringify({
+    role: 'assistant', modelID: 'm', time: { completed: 1_770_905_193_201 }, path: { cwd: '/w/app' }, tokens: { input: 1, output: 1, cache: { read: 0, write: 0 } },
+  });
+  const { records } = opencode.readRows([
+    { id: '1', session_id: 'a', time_created: 1, data, parent_id: null },
+    { id: '2', session_id: 'b', time_created: 2, data, parent_id: 'a' },
+  ]);
+  assert.deepEqual(records.map((record) => record.sidechain), [false, true]);
 });
 
 function sqliteAvailable() {

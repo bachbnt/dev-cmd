@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { getPaths } = require('../config/paths');
+const { VERSION } = require('../config');
 const { configValue, saveConfig } = require('../config/user');
 const { AI_PERIODS } = require('../ai/constants');
 const { budgetLines, budgetStatus, monthSpend, shortLine } = require('../ai/budget');
@@ -16,6 +17,7 @@ const {
 const render = require('../ai/render');
 const { buildReport } = require('../ai/report');
 const { scan } = require('../ai/scan');
+const { writeShort } = require('../ai/short-cache');
 const { describeSources } = require('../ai/sources');
 const { projectName } = require('../ai/sources/shared');
 const {
@@ -62,7 +64,7 @@ function buildPlan(context) {
     since: resolved.since,
     until: resolved.until,
     groupBy: options.by || (history ? 'month' : resolved.groupBy),
-    tools: options.aiTools || [],
+    tools: options.aiTools?.length ? options.aiTools : (config?.aiTools || []),
     projects: [...(options.repos || []), ...(options.here ? [projectName(process.cwd())] : [])],
     models: options.models || [],
     clients: clientList(config),
@@ -154,15 +156,20 @@ function exportSnapshot(context, plan, snapshot, notes) {
 
 async function collectAi(context) {
   const { options, config = {} } = context;
+  if (options.notify && !options.check) throw new Error('--notify works with --check: dev ai --check --notify');
+  if (options.notify && options.json) throw new Error('--notify cannot be combined with --json.');
   const plan = buildPlan(context);
   const {
     homeDir, today, offsetMinutes, query, paths,
   } = plan;
+  const enabled = config.aiTools || [];
 
   if (plan.period === 'clients') return collectClients(context, plan);
 
   if (options.showTools) {
-    const sources = describeSources({ homeDir, dirs: { claude: options.claudeDir, codex: options.codexDir } });
+    const sources = describeSources({
+      homeDir, dirs: { claude: options.claudeDir, codex: options.codexDir }, roots: config.aiSourceRoots, enabled,
+    });
     return { mode: 'tools', data: sources, exitCode: 0 };
   }
 
@@ -199,7 +206,8 @@ async function collectAi(context) {
   const { usages, stats } = await scan({
     homeDir,
     dirs: { claude: options.claudeDir, codex: options.codexDir },
-    tools: wantsBudget ? [] : query.tools,
+    tools: wantsBudget ? enabled : query.tools,
+    roots: config.aiSourceRoots,
     modifiedSince: scanSince ? modifiedSince({ since: scanSince, offsetMinutes }) : undefined,
     cacheFile: options.noCache ? undefined : paths.aiScanCacheFile,
     readOnlyCache: Boolean(options.dryRun),
@@ -282,7 +290,7 @@ function table(headers, rows, rightFrom = 99) {
 function showStatic(out, { mode, data, prices }) {
   if (mode === 'tools') {
     out.write(table(['Tool', 'Status', 'Verified', 'Billing', 'Logs'], data.map((source) => [
-      source.label, source.found ? 'found' : (source.reason ? 'no data' : 'not found'), source.maturity, source.billing, source.dir || source.reason || '',
+      source.label, source.enabled === false ? 'off (aiTools)' : (source.found ? 'found' : (source.reason ? 'no data' : 'not found')), source.maturity, source.billing, [source.dir, ...(source.extra || [])].filter(Boolean).join(' + ') || source.reason || '',
     ])));
   } else if (mode === 'prices') {
     out.write(`${render.pricesTable(prices)}\nUSD per 1,000,000 tokens. Prices last checked: ${data.updated ?? 'unknown'}${data.stale ? ' (older than aiPriceStaleDays)' : ''}.\n`);
@@ -298,6 +306,16 @@ function showStatic(out, { mode, data, prices }) {
   } else if (mode === 'import') {
     out.write(`Imported ${data.machine}: ${data.days} day(s), ${data.requests} requests, ${render.money(data.cost_usd)}. dev ai --history now includes it.\n`);
   }
+}
+
+// `dev ai --check --notify`: a system notification when the month is over budget or today is out
+// of the ordinary. It runs once per call; scheduling the call (cron, launchd, Task Scheduler) is
+// the user's choice, and nothing runs in the background.
+function notifyBudget(context, data) {
+  const over = data.budget_usd !== null && data.over;
+  if (!over && !data.anomaly?.flagged) return;
+  const send = context.notify || require('../runtime/execute').sendNotification;
+  send(`AI cost: ${shortLine(data)}${anomalyText(data.anomaly)}`);
 }
 
 function anomalyText(anomaly) {
@@ -323,13 +341,25 @@ async function handleAi(context) {
   }
 
   if (mode === 'budget') {
-    if (options.short) {
-      out.write(`${shortLine(data)}${anomalyText(data.anomaly)}\n`);
-    } else {
-      const lines = budgetLines(data);
-      for (const line of lines.length ? lines : [shortLine(data)]) out.write(`${line}\n`);
+    const lines = options.short ? [] : budgetLines(data);
+    const stdout = options.short
+      ? `${shortLine(data)}${anomalyText(data.anomaly)}\n`
+      : `${(lines.length ? lines : [shortLine(data)]).join('\n')}\n`;
+    const stderr = result.notes.map((note) => `${note}\n`).join('');
+    out.write(stdout);
+    if (stderr) err.write(stderr);
+    if (options.notify) notifyBudget(context, data);
+    if (options.short && context.argv) {
+      writeShort({
+        argv: context.argv,
+        homeDir: context.homeDir,
+        now: context.now ? context.now().getTime() : Date.now(),
+        version: VERSION,
+        stdout,
+        stderr,
+        exitCode: result.exitCode,
+      });
     }
-    for (const note of result.notes) err.write(`${note}\n`);
     return result.exitCode;
   }
   if (mode === 'sessions' || mode === 'efficiency') {
@@ -372,4 +402,4 @@ async function handleAi(context) {
   return 0;
 }
 
-module.exports = { collectAi, handleAi };
+module.exports = { collectAi, handleAi, notifyBudget };

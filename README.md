@@ -580,7 +580,7 @@ dev config set aiBudget 200
 
 `notify` sets the notification threshold in seconds. DevCmd sends a system notification when a command runs longer than the threshold. Set to `0` to disable (default).
 
-`aiBudget` is the monthly budget in USD for [`dev ai`](#ai-cost). It has no default; `dev config set aiBudget off` removes it.
+`aiBudget` is the monthly budget in USD for [`dev ai`](#ai-cost). It has no default; `dev config set aiBudget off` removes it. `aiTools` (`dev config set aiTools claude,codex`) limits `dev ai` to those tools unless you pass `--tool`; `off` reads every tool again. `aiSourceRoots` (`dev config set aiSourceRoots codex=/mnt/backup/codex`) adds another folder of logs for a tool, one folder per call; `codex=off` forgets a tool's extra folders and `off` forgets them all.
 
 Default configuration:
 
@@ -681,6 +681,8 @@ dev ai --print-statusline-config # a Claude Code status line setting that runs d
 
 `dev ai --efficiency` compares `aiPlan` (`dev config set aiPlan 20`) with what the same usage costs at API prices. A warning appears when today costs more than `aiAnomalyFactor` (default 3) times your usual day and at least `aiAnomalyMinUsd` (default 5), and when the price table is older than `aiPriceStaleDays` (default 90). Client names live only in your config and the local scan cache: they are never written to the daily history or sent through MCP.
 
+Sub-agent share is known for Claude Code, Codex (sessions another agent started) and OpenCode (sessions with a parent); the other tools do not log it. Requests of a model without a price are left out of the share.
+
 Copilot CLI and OpenCode report their own cost, and DevCmd shows that figure; Gemini CLI logs of the version surveyed hold no model replies or token counts, so it shows few or no requests. Antigravity keeps no usage numbers locally and is not supported. Details and the evidence for each source are in `docs/AI-SOURCES.md`. Copilot and OpenCode are read from SQLite through `node:sqlite` (Node 22.5 and newer) or the `sqlite3` command.
 
 ### Several computers
@@ -699,7 +701,19 @@ dev config set aiBudget 200     # USD per month
 dev ai                          # also shows the share used and a straight-line month-end estimate
 dev ai --check                  # exit 1 over budget, 0 under it, 2 when no budget is set
 dev ai --short                  # one line for a status line: "$13.93 today · $1,173.40 this month (587% of $200.00)"
+dev ai --check --notify         # also a system notification when over budget or today is unusual
 ```
+
+`--notify` works only with `--check` and notifies once per call, using the same system notification as `dev config set notify`. DevCmd runs nothing in the background, so you schedule the call yourself, for example every hour:
+
+```bash
+# cron (macOS and Linux): crontab -e
+0 * * * * dev ai --check --notify
+```
+
+On macOS a launchd agent or, on Windows, a Task Scheduler task running `dev ai --check --notify` does the same. A scheduled run notifies on every call while the month stays over budget, so choose the interval accordingly.
+
+`dev ai --short` is made for status lines, which call it constantly. Its answer is kept for 30 seconds in `~/.devcmd/ai-short-cache.json` and printed before the rest of DevCmd loads, so a repeated call takes about as long as starting Node (around 30 ms). A call that reads the logs again takes roughly 170 ms on a large log folder. The saved answer is ignored after a config change, in another folder (`--here`) or after an update, and `--dry-run`, `--no-cache`, `--json` and `--notify` never use it.
 
 The budget counts this month across every tool and project, whatever filters you pass. The MCP server has a read-only `ai_cost` tool that returns totals by day, week, month, model or tool (never by project, session, branch or client). The month-end figure is a straight-line estimate from the pace so far, not a promise.
 
@@ -796,12 +810,13 @@ History entries store executables and argument arrays instead of shell command s
 --project <path>            (history only) Filter history by project path
 --search <text>             (history only) Filter history by text
 --by <group>                (ai only) day, week, month, project, model, tool, session
---tool <id>                 (ai only, repeatable) claude, codex
+--tool <id>                 (ai only, repeatable) claude, codex, gemini, copilot, opencode
 --model <text>              (ai only, repeatable) Model name contains text
 --repo <text>               (ai only, repeatable) Project folder name contains text
 --since <date>, --until <date>   (ai report, ai --history) 2026-11-01, today, 7d, 2w, 3m
 --format <table|json|csv>   (ai only)
 --check, --short            (ai only) Budget exit code, one-line summary
+--notify                    (ai only, with --check) Notify when over budget or unusual
 --history                   (ai only) Daily totals kept beyond the tool logs
 --tools                     (ai only) List the tools whose logs are read
 --pricing <file>            (ai only) Extra price file

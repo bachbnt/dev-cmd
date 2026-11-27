@@ -2,13 +2,16 @@
 
 const fs = require('fs');
 const { readJson: readJsonFile, writeJsonAtomic } = require('../store/json-store');
+const os = require('os');
+const path = require('path');
+const { AI_TOOLS } = require('../ai/constants');
 const { CONFIG_FILE, PACKAGE_MANAGERS } = require('./index');
 
 // Every setting is declared once in SCHEMA: its type, its default (or none), how a text value from
 // `dev config set` is read, and what makes a stored value valid. `DEFAULT_CONFIG`, `CONFIG_KEYS`,
 // `parseConfigValue` and `validateConfig` are all derived from it.
 //
-//   type      'enum' | 'boolean' | 'string' | 'integer' | 'number' | 'object'
+//   type      'enum' | 'boolean' | 'string' | 'integer' | 'number' | 'object' | 'list' | 'roots'
 //   default   written into a fresh config; settings without one stay unset until you set them
 //   fallback  what the code uses while the setting is unset (not written to the file)
 //   settable  false for objects that `dev config set` cannot express (managed by their own command)
@@ -38,6 +41,12 @@ const SCHEMA = {
   aiAnomalyMinUsd: { type: 'number', min: 0, fallback: 5, message: 'aiAnomalyMinUsd must be a non-negative number (USD).' },
   aiPriceStaleDays: { type: 'integer', min: 1, fallback: 90, message: 'aiPriceStaleDays must be a positive whole number of days.' },
   aiMachine: { type: 'string', pattern: /^[A-Za-z0-9_-]{1,40}$/, message: 'aiMachine must be 1 to 40 letters, digits, dashes or underscores.' },
+  aiTools: {
+    type: 'list', values: AI_TOOLS, off: 'off', message: `aiTools must be a list of: ${AI_TOOLS.join(', ')}.`, setMessage: `aiTools must be a comma-separated list of: ${AI_TOOLS.join(', ')}. Use off to read every tool.`,
+  },
+  aiSourceRoots: {
+    type: 'roots', off: 'off', message: 'aiSourceRoots must map an AI tool to a list of absolute folders.', setMessage: `aiSourceRoots takes <tool>=<absolute folder> (tool: ${AI_TOOLS.join(', ')}); <tool>=off removes a tool's folders, off removes all.`,
+  },
   aiClients: { type: 'object', settable: false, message: 'aiClients must be an object that maps a folder path to a client name.' },
 };
 
@@ -61,6 +70,11 @@ function isValid(entry, value) {
     case 'number': return typeof value === 'number' && Number.isFinite(value) && value >= (entry.min ?? -Infinity);
     case 'object': return value !== null && typeof value === 'object' && !Array.isArray(value)
       && Object.values(value).every((name) => typeof name === 'string' && name.trim());
+    case 'list': return Array.isArray(value) && value.length > 0 && new Set(value).size === value.length
+      && value.every((item) => entry.values.includes(item));
+    case 'roots': return value !== null && typeof value === 'object' && !Array.isArray(value)
+      && Object.entries(value).every(([tool, folders]) => AI_TOOLS.includes(tool) && Array.isArray(folders)
+        && folders.length > 0 && folders.every((folder) => typeof folder === 'string' && path.isAbsolute(folder)));
     default: return false;
   }
 }
@@ -102,6 +116,19 @@ function parseConfigValue(key, value) {
       if (String(value).trim() === '' || !isValid(entry, number)) return fail();
       return number;
     }
+    case 'list': {
+      const items = [...new Set(String(value).split(',').map((item) => item.trim()).filter(Boolean))];
+      return isValid(entry, items) ? items : fail();
+    }
+    case 'roots': {
+      const at = String(value).indexOf('=');
+      const tool = at < 0 ? '' : value.slice(0, at);
+      const folder = at < 0 ? '' : value.slice(at + 1);
+      if (!AI_TOOLS.includes(tool) || !folder) return fail();
+      if (folder === entry.off) return { tool, folder: undefined };
+      const expanded = folder === '~' || folder.startsWith('~/') ? path.join(os.homedir(), folder.slice(1)) : folder;
+      return path.isAbsolute(expanded) ? { tool, folder: path.normalize(expanded) } : fail();
+    }
     default:
       return isValid(entry, value) ? value : fail();
   }
@@ -115,12 +142,21 @@ function saveConfig(config, options = {}) {
   return validated;
 }
 
+// `aiSourceRoots` grows one folder per `config set`; a parsed `undefined` clears every tool.
+function addRoot(current, parsed) {
+  if (parsed === undefined) return undefined;
+  const roots = { ...(current || {}) };
+  if (parsed.folder === undefined) delete roots[parsed.tool];
+  else roots[parsed.tool] = [...new Set([...(roots[parsed.tool] || []), parsed.folder])];
+  return Object.keys(roots).length > 0 ? roots : undefined;
+}
+
 function setConfigValue(key, value, options = {}) {
   const config = loadConfig(options);
   if (key === 'editor') delete config.opener;
   if (key === 'opener') delete config.editor;
   const parsed = parseConfigValue(key, value);
-  config[key] = parsed;
+  config[key] = SCHEMA[key].type === 'roots' ? addRoot(config[key], parsed) : parsed;
   return saveConfig(config, options);
 }
 

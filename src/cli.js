@@ -80,6 +80,7 @@ async function main(argv) {
     return await dispatch({
       p,
       pc,
+      argv,
       command,
       options,
       positionals,

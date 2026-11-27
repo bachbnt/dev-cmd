@@ -10,7 +10,7 @@ const { isObject, projectName } = require('./shared');
 // OpenCode itself worked out (0 for free models). Checked on a real database: `tokens.total` is
 // input + output + cache read + cache write, so reasoning is already inside `output`.
 
-const SQL = `select m.id, m.session_id, m.time_created, m.data, s.directory
+const SQL = `select m.id, m.session_id, m.time_created, m.data, s.directory, s.parent_id
   from message m left join session s on s.id = m.session_id`;
 
 const count = (value) => (Number.isSafeInteger(value) && value > 0 ? value : 0);
@@ -50,7 +50,8 @@ function readRows(rows) {
       project: projectName(data.path?.cwd ?? row.directory),
       cwd: String(data.path?.cwd ?? row.directory ?? ''),
       branch: '',
-      sidechain: false,
+      // A session with a parent was started by another session (a sub-agent task).
+      sidechain: row.parent_id !== null && row.parent_id !== undefined && row.parent_id !== '',
       at,
       tokens: usage,
       reportedCost: typeof data.cost === 'number' && data.cost >= 0 ? data.cost : undefined,

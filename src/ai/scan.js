@@ -7,7 +7,7 @@ const {
 } = require('./cache');
 const { scanFile } = require('./lines');
 const { emptyScan } = require('./report');
-const { getSources, sourceDir } = require('./sources');
+const { getSources, sourceRoots } = require('./sources');
 
 // Finds the log files of the wanted tools, reads them (in parallel, through the cache), removes
 // requests that were logged more than once, and returns every request in a stable order.
@@ -110,7 +110,7 @@ function databaseMtime(file) {
   return newest;
 }
 
-// config: { homeDir, dirs: { claude, codex }, tools: [], modifiedSince: ms, cacheFile }
+// config: { homeDir, dirs: { claude, codex }, roots: { <tool>: [extra folders] }, tools: [], modifiedSince: ms, cacheFile }
 async function scan(config) {
   const stats = emptyScan();
   const cache = config.cacheFile ? loadCache(config.cacheFile) : emptyCache();
@@ -120,20 +120,27 @@ async function scan(config) {
   const scannedRoots = [];
 
   for (const source of getSources(config.tools)) {
-    const root = sourceDir(source, config);
-    if (!await isDirectory(root)) {
-      stats.missing.push(source.tool);
-      continue;
+    let foundRoot = false;
+    for (const root of sourceRoots(source, config)) {
+      if (!await isDirectory(root)) continue;
+      scannedRoots.push(root);
+      if (source.kind === 'sqlite') {
+        const file = path.join(root, source.dbFile);
+        if (fs.existsSync(file)) {
+          foundRoot = true;
+          jobs.push({ source, file, database: true });
+        }
+        continue;
+      }
+      foundRoot = true;
+      for (const file of await listLogs(source, root)) jobs.push({ source, file });
     }
-    scannedRoots.push(root);
-    if (source.kind === 'sqlite') {
-      const file = path.join(root, source.dbFile);
-      if (fs.existsSync(file)) jobs.push({ source, file, database: true });
-      else stats.missing.push(source.tool);
-      continue;
-    }
-    for (const file of await listLogs(source, root)) jobs.push({ source, file });
+    if (!foundRoot) stats.missing.push(source.tool);
   }
+  // Two roots that overlap (a folder and one inside it) must not read a file twice.
+  const unique = new Map(jobs.map((job) => [job.file, job]));
+  jobs.length = 0;
+  jobs.push(...unique.values());
 
   const statted = await mapLimit(jobs, CONCURRENCY, async (job) => {
     try {

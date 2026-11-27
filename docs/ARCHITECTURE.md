@@ -106,8 +106,8 @@ flowchart TD
 | `src/devices/` | Liệt kê Android emulator, iOS simulator. |
 | `src/generators/` | Script nội bộ (python-project, clean-project, reset-project) được chạy như child process. |
 | `src/registry/files.js` | Đọc file JSON của registry dùng chung (một file, thư mục, thông báo lỗi) cho recipes, openers và cleaners (T4). |
-| `src/ai/` | **`dev ai`** (chi phí công cụ AI): `sources/` (một file mỗi công cụ: Claude, Codex, Gemini, Copilot, OpenCode; nguồn SQLite qua `sqlite.js`), `analysis.js` (hiệu quả, phiên đắt nhất, bất thường), `machines.js` (gộp nhiều máy), `lines.js` (quét dòng bằng Buffer thô, chỉ chuyển thành chuỗi những dòng chứa từ khóa), `scan.js` (tìm file, đọc song song, bỏ trùng), `cache.js` (cache quét tăng dần), `pricing.js` + `data/pricing.toml` (bảng giá), `query.js`, `report.js`, `snapshot.js` (tổng theo ngày), `budget.js`, `render.js`. Tính ra cùng số với aicost (`scripts/ai-parity.js`). |
-| `src/mcp/` | MCP server stdio: `server.js`, `tools.js` (định nghĩa + `callTool`), `ai-tool.js` (tool `ai_cost`, chỉ đọc, không lộ tên project/phiên/nhánh/khách), `processes.js` (`ProcessManager` cho tiến trình nền). |
+| `src/ai/` | **`dev ai`** (chi phí công cụ AI): `sources/` (một file mỗi công cụ: Claude, Codex, Gemini, Copilot, OpenCode; nguồn SQLite qua `sqlite.js`), `analysis.js` (hiệu quả, phiên đắt nhất, bất thường), `machines.js` (gộp nhiều máy), `lines.js` (quét dòng bằng Buffer thô, chỉ chuyển thành chuỗi những dòng chứa từ khóa), `scan.js` (tìm file, đọc song song, bỏ trùng), `cache.js` (cache quét tăng dần), `pricing.js` + `data/pricing.toml` (bảng giá), `query.js`, `report.js`, `snapshot.js` (tổng theo ngày), `budget.js`, `short-cache.js` (kết quả `--short` giữ 30 giây, chỉ dùng `fs`/`os`/`path` vì file `dev` gọi nó **trước khi** nạp CLI), `render.js`. `aiTools` và `aiSourceRoots` trong config chọn công cụ mặc định và thư mục log thêm (`sources/index.js`: `sourceRoots`). Tính ra cùng số với aicost (`scripts/ai-parity.js`). |
+| `src/mcp/` | MCP server stdio: `server.js`, `tools.js` (ghép các miền + `callTool`), một file mỗi miền (`lifecycle-tools.js`, `process-tools.js`, `scaffold-tools.js`, `device-tools.js`, `history-tools.js`, mỗi file xuất `{ definitions, handlers }`), `shared.js` (kết quả, thuộc tính schema chung, `runCaptured`), `ai-tool.js` (tool `ai_cost`, chỉ đọc, không lộ tên project/phiên/nhánh/khách), `processes.js` (`ProcessManager` cho tiến trình nền). |
 | `test/` | `node --test`, mỗi module một file test. |
 | `.ai/skills`, `.claude/skills` | Skill AI dùng lại cho dự án (symlink). |
 | `scripts/`, `.github/workflows/` | Cài đặt, release, CI, publish npm. |
@@ -272,7 +272,7 @@ flowchart LR
 | Loại project / lifecycle action mới | `src/projects/detect.js`, `src/projects/adapters/*`, và thêm lệnh vào `src/cli/commands.js` (kind `lifecycle`). |
 | Thiết bị mới | `src/devices/*`, `src/commands/devices.js`, `src/handlers/devices.js`. |
 | Công cụ AI mới cho `dev ai` | Một file trong `src/ai/sources/` (cùng giao diện với `claude.js`), thêm vào `sources/index.js` và `src/ai/constants.js`; fixture bịa ở `test/fixtures/ai/`. |
-| Tool MCP mới | `src/mcp/tools.js` (tái dùng hàm dựng lệnh hiện có). |
+| Tool MCP mới | Một file miền trong `src/mcp/` (`definitions` + `handlers`, tái dùng hàm dựng lệnh hiện có), rồi thêm vào `DOMAINS` ở `tools.js`. |
 | Recipe/opener riêng của người dùng | `~/.devcmd/recipes/*.json`, `~/.devcmd/openers/*.json` (không cần sửa code). |
 
 ## 10. Dữ liệu trạng thái ngoài repo

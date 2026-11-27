@@ -20,14 +20,21 @@ if (compareVersions(process.versions.node, MIN_NODE_VERSION) < 0) {
   process.exit(1);
 }
 
-const { main } = require('./src/cli');
+const argv = process.argv.slice(2);
 
-main(process.argv.slice(2)).then(
-  (exitCode) => {
-    process.exitCode = exitCode;
-  },
-  (error) => {
-    console.error(`DevCmd failed: ${error.message}`);
-    process.exitCode = 1;
-  }
-);
+// A status line runs `dev ai --short` constantly: a fresh 30-second answer is printed before the CLI loads.
+const answered = argv[0] === 'ai' && require('./src/ai/short-cache').printShort(argv);
+
+if (!answered) {
+  const { main } = require('./src/cli');
+
+  main(argv).then(
+    (exitCode) => {
+      process.exitCode = exitCode;
+    },
+    (error) => {
+      console.error(`DevCmd failed: ${error.message}`);
+      process.exitCode = 1;
+    }
+  );
+}

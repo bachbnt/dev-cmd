@@ -43,7 +43,7 @@ function efficiency(usages, prices, query, { planUsd, monthUsd } = {}) {
       api_usd_this_month: monthUsd ?? null,
       ratio: monthUsd !== undefined && planUsd > 0 ? monthUsd / planUsd : null,
     },
-    note: 'Costs are API prices for this usage. Sub-agent share is known only for tools that log it (Claude Code).',
+    note: 'Costs are API prices for this usage. Sub-agent share is known only for tools that log it (Claude Code, Codex, OpenCode); requests with no price are left out.',
   };
 }
 

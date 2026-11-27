@@ -28,16 +28,24 @@ function sourceDir(source, { homeDir, dirs = {} }) {
   return dirs[source.tool] || source.defaultDir(homeDir);
 }
 
+// Every folder to read for a source: its own, then the extra ones from `aiSourceRoots`.
+function sourceRoots(source, options) {
+  const extra = options.roots?.[source.tool] || [];
+  return [...new Set([sourceDir(source, options), ...extra])];
+}
+
 // What `dev ai --tools` shows: which sources exist, where they read, whether the folder is there.
 function describeSources(options) {
   return SOURCES.map((source) => {
     const dir = sourceDir(source, options);
+    const extra = sourceRoots(source, options).slice(1);
     let found = false;
     try {
       found = fs.statSync(dir).isDirectory();
     } catch {}
+    const enabled = !options.enabled?.length || options.enabled.includes(source.tool);
     return {
-      tool: source.tool, label: source.label, dir, found, billing: source.billing, maturity: source.maturity,
+      tool: source.tool, label: source.label, dir, extra, found, enabled, billing: source.billing, maturity: source.maturity,
     };
   }).concat(UNSUPPORTED.map((entry) => ({
     tool: entry.tool, label: entry.label, dir: '', found: false, billing: 'none', maturity: 'not supported', reason: entry.reason,
@@ -49,5 +57,5 @@ if (SOURCES.map((source) => source.tool).join() !== AI_TOOLS.join()) {
 }
 
 module.exports = {
-  SOURCES, UNSUPPORTED, describeSources, getSources, sourceDir,
+  SOURCES, UNSUPPORTED, describeSources, getSources, sourceDir, sourceRoots,
 };

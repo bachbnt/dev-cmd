@@ -7,7 +7,8 @@ const { isObject, parseTime, projectName } = require('./shared');
 //
 // The log does not give the tokens of each request. It gives a running total for the session
 // (`token_count` events), so a request is the difference between two totals. The model comes from
-// the latest `turn_context`, the folder from `session_meta`.
+// the latest `turn_context`, the folder and whether another agent started the session from
+// `session_meta`.
 //
 // In these totals `input_tokens` already contains `cached_input_tokens`, and `output_tokens`
 // already contains the reasoning tokens (`total_tokens == input_tokens + output_tokens`).
@@ -62,11 +63,12 @@ module.exports = {
   defaultDir: (homeDir) => path.join(homeDir, '.codex', 'sessions'),
   isLog: (file) => file.endsWith('.jsonl'),
   needles: ['"token_count"', '"turn_context"', '"session_meta"'],
-  version: 2,
+  version: 3,
   initState: (file) => ({
     session: path.basename(file, path.extname(file)),
     project: '(unknown)',
     cwd: '',
+    sidechain: false,
     model: 'unknown',
     previous: { ...EMPTY_TOTALS },
   }),
@@ -90,6 +92,8 @@ module.exports = {
       state.session = payload.id;
       state.cwd = typeof payload.cwd === 'string' ? payload.cwd : '';
       state.project = projectName(state.cwd);
+      // A session started by another agent (for example the guardian review) has `source.subagent`.
+      state.sidechain = isObject(payload.source) && 'subagent' in payload.source;
     } else if ('turn_id' in payload && 'model' in payload) {
       // `turn_context`: the model of the requests that follow.
       if (typeof payload.model === 'string') state.model = payload.model;
@@ -106,7 +110,7 @@ module.exports = {
       }
       if (!isEmpty(tokens)) {
         out.records.push({
-          key: null, tool: 'codex', model: state.model, session: state.session, project: state.project, cwd: state.cwd, branch: '', sidechain: false, at, tokens,
+          key: null, tool: 'codex', model: state.model, session: state.session, project: state.project, cwd: state.cwd, branch: '', sidechain: state.sidechain, at, tokens,
         });
       }
     }
